@@ -8,17 +8,17 @@ import numpy as np
 # --- App Configuration ---
 st.set_page_config(page_title="Zenova SRP", layout="wide", initial_sidebar_state="expanded")
 
-# --- Custom CSS for Professional Look (Google-inspired with horizontal tabs) ---
+# --- Custom CSS for Professional Look (Dark Mode, Google-inspired with horizontal tabs) ---
 st.markdown("""
 <style>
-    /* Import Google Fonts - Roboto for general text, possibly a display font if desired */
+    /* Import Google Fonts - Roboto for general text */
     @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
 
-    /* General Body and Text Styling */
+    /* General Body and Text Styling for Dark Mode */
     body {
         font-family: 'Roboto', sans-serif;
-        color: #333333; /* Darker text for readability */
-        background-color: #F0F2F6; /* Very light grey background */
+        color: #E0E0E0; /* Light grey text for readability on dark background */
+        background-color: #121212; /* Very dark grey background */
     }
 
     /* Streamlit Main Container Padding */
@@ -31,25 +31,25 @@ st.markdown("""
 
     /* Sidebar Styling */
     .stSidebar {
-        background-color: #FFFFFF; /* White sidebar background */
-        border-right: 1px solid #EEEEEE; /* Subtle border */
+        background-color: #1E1E1E; /* Darker grey for sidebar background */
+        border-right: 1px solid #333333; /* Subtle darker border */
         padding-top: 1rem;
     }
     .stSidebar .stSelectbox > label {
         font-weight: 600;
-        color: #555555;
+        color: #A0A0A0; /* Lighter grey for labels */
     }
     .stSidebar .stImage {
         padding-bottom: 1rem;
-        border-bottom: 1px solid #EEEEEE;
+        border-bottom: 1px solid #333333;
         margin-bottom: 1rem;
         display: block; /* Ensures proper centering/sizing */
         margin-left: auto;
         margin-right: auto;
     }
     .stSidebar .css-r6zgs0 { /* Target Streamlit's "Logged in as" success message */
-        background-color: #E6F7FF; /* Light blue background for success */
-        color: #1890FF; /* Blue text */
+        background-color: #004D40; /* Darker green for success */
+        color: #80CBC4; /* Lighter green text */
         border-radius: 8px;
         padding: 0.75rem 1rem;
         margin-bottom: 1rem;
@@ -57,58 +57,58 @@ st.markdown("""
 
     /* Top Horizontal Tabs Styling */
     [data-testid="stTabs"] {
-        background-color: #FFFFFF; /* White background for the tab bar */
-        border-bottom: 1px solid #E0E0E0; /* Subtle line below tabs */
+        background-color: #1E1E1E; /* Darker grey background for the tab bar */
+        border-bottom: 1px solid #333333; /* Subtle line below tabs */
         padding-top: 0.5rem;
         padding-bottom: 0.5rem;
-        padding-left: 1rem; /* Adjust padding if needed */
-        margin-bottom: 1.5rem; /* Space between tabs and content */
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08); /* Subtle shadow for depth */
-        border-radius: 0 0 12px 12px; /* Rounded bottom corners for the header area */
-        overflow: hidden; /* Ensures shadow applies nicely */
+        padding-left: 1rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.5); /* Stronger shadow for depth on dark */
+        border-radius: 0 0 12px 12px;
+        overflow: hidden;
     }
 
     [data-testid="stTab"] {
-        font-weight: 500; /* Slightly bolder font for tabs */
-        font-size: 1.05em; /* Slightly larger font */
-        padding: 0.75rem 1.25rem; /* More generous padding for tabs */
-        margin: 0 0.25rem; /* Space between tabs */
-        border-radius: 8px; /* Rounded corners for individual tabs */
-        transition: background-color 0.2s, color 0.2s, box-shadow 0.2s; /* Smooth transitions */
-        color: #555555; /* Default tab text color */
+        font-weight: 500;
+        font-size: 1.05em;
+        padding: 0.75rem 1.25rem;
+        margin: 0 0.25rem;
+        border-radius: 8px;
+        transition: background-color 0.2s, color 0.2s, box-shadow 0.2s;
+        color: #A0A0A0; /* Default tab text color */
     }
 
     [data-testid="stTab"]:hover {
-        background-color: #F0F2F6; /* Lighter grey on hover */
-        color: #333333; /* Darker text on hover */
-        box-shadow: 0 1px 4px rgba(0,0,0,0.1); /* Slight lift on hover */
+        background-color: #2D2D2D; /* Slightly lighter dark grey on hover */
+        color: #E0E0E0; /* Lighter text on hover */
+        box-shadow: 0 1px 4px rgba(0,0,0,0.3); /* Slight lift on hover */
     }
 
     [data-testid="stTab"][aria-selected="true"] {
-        background-color: #E6F7FF; /* Light blue for active tab */
-        color: #1890FF; /* Primary blue for active tab text */
-        font-weight: 600; /* Bold for active tab */
-        box-shadow: 0 1px 4px rgba(0,0,0,0.1); /* Slight shadow for active tab */
-        border-bottom: 3px solid #1890FF; /* Strong blue underline for active tab */
-        border-radius: 8px 8px 0 0; /* Only top corners rounded for active tab */
-        margin-bottom: -3px; /* Pull active tab slightly over the bottom border */
+        background-color: #003366; /* Darker blue for active tab */
+        color: #90CAF9; /* Lighter blue for active tab text */
+        font-weight: 600;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+        border-bottom: 3px solid #1890FF; /* Primary blue underline for active tab */
+        border-radius: 8px 8px 0 0;
+        margin-bottom: -3px;
     }
 
     /* Headers and Subheaders */
     h1, h2, h3, h4, h5, h6 {
         font-family: 'Roboto', sans-serif;
-        color: #333333;
+        color: #FFFFFF; /* White for main headers */
         font-weight: 600;
-        margin-bottom: 0.75rem; /* Consistent spacing */
+        margin-bottom: 0.75rem;
     }
     h2 {
-        border-bottom: 1px solid #EEEEEE; /* Subtle line under main subheaders */
+        border-bottom: 1px solid #333333; /* Darker line under main subheaders */
         padding-bottom: 0.5rem;
         margin-top: 1.5rem;
         margin-bottom: 1rem;
     }
     h3 {
-        color: #555555;
+        color: #A0A0A0; /* Lighter grey for sub-subheaders */
         margin-top: 1.25rem;
         margin-bottom: 0.75rem;
     }
@@ -124,34 +124,34 @@ st.markdown("""
         border-radius: 8px;
         padding: 1rem;
         margin-bottom: 1rem;
+        color: #FFFFFF; /* White text for alerts */
     }
     div.stAlert.st-success {
-        background-color: #E6FFE6; /* Light green */
-        color: #28a745; /* Darker green */
+        background-color: #28a745; /* Darker green */
         border-left: 5px solid #28a745;
     }
     div.stAlert.st-info {
-        background-color: #E6F7FF; /* Light blue */
-        color: #1890FF; /* Blue */
+        background-color: #1890FF; /* Primary blue */
         border-left: 5px solid #1890FF;
     }
     div.stAlert.st-warning {
-        background-color: #FFFBE6; /* Light yellow */
-        color: #ffc107; /* Darker yellow */
+        background-color: #ffc107; /* Darker yellow */
         border-left: 5px solid #ffc107;
     }
     div.stAlert.st-error {
-        background-color: #FFF0F0; /* Light red */
-        color: #dc3545; /* Darker red */
+        background-color: #dc3545; /* Darker red */
         border-left: 5px solid #dc3545;
     }
 
     /* Form Elements */
     .stTextInput > label, .stSelectbox > label, .stDateInput > label, .stNumberInput > label, .stSlider > label, .stTextArea > label, .stCheckbox > label {
         font-weight: 600;
-        color: #555555;
+        color: #A0A0A0; /* Lighter grey for form labels */
         margin-bottom: 0.5rem;
     }
+    /* Input fields themselves need attention, but Streamlit often styles these internally.
+       If specific input fields need background/text changes, individual targeting might be needed. */
+
     .stButton > button {
         background-color: #1890FF; /* Primary blue button */
         color: white;
@@ -166,36 +166,38 @@ st.markdown("""
         color: white;
     }
     .stExpander {
-        border: 1px solid #E0E0E0;
+        border: 1px solid #333333;
         border-radius: 8px;
         padding: 1rem;
         margin-bottom: 1.5rem;
-        background-color: #FFFFFF;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05); /* Subtle shadow for depth */
+        background-color: #1E1E1E; /* Darker grey for expander */
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2); /* Subtle shadow for depth */
     }
     .stForm {
         padding: 1.5rem;
-        border: 1px solid #E0E0E0;
+        border: 1px solid #333333;
         border-radius: 8px;
-        background-color: #FDFDFD;
+        background-color: #1E1E1E; /* Darker grey for forms */
     }
 
     /* Dataframes */
     .stDataFrame {
         border-radius: 8px;
-        overflow: hidden; /* Ensures borders apply correctly */
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        overflow: hidden;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
     }
+    /* Streamlit dataframes default to a dark mode friendly style when `plotly_dark` template is used,
+       but specific cell colors might need manual overrides if default dark mode dataframe styling is not sufficient. */
 
     /* Metrics */
     [data-testid="stMetricValue"] {
-        font-size: 2.5rem; /* Larger metric value */
+        font-size: 2.5rem;
         font-weight: 700;
-        color: #333333;
+        color: #FFFFFF; /* White for metric values */
     }
     [data-testid="stMetricLabel"] {
         font-size: 1.1em;
-        color: #666666;
+        color: #A0A0A0; /* Lighter grey for metric labels */
     }
     [data-testid="stMetricDelta"] {
         font-size: 1.2em;
@@ -203,27 +205,28 @@ st.markdown("""
 
     /* Card-like containers for sections */
     .stContainer {
-        border: 1px solid #E0E0E0;
-        border-radius: 12px; /* More rounded corners for main sections */
+        border: 1px solid #333333;
+        border-radius: 12px;
         padding: 1.5rem;
         margin-bottom: 1.5rem;
-        background-color: #FFFFFF;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.08); /* More pronounced shadow for cards */
+        background-color: #1E1E1E; /* Darker grey for cards */
+        box-shadow: 0 4px 8px rgba(0,0,0,0.3); /* More pronounced shadow for cards on dark */
     }
     .stPlotlyChart {
-        border: 1px solid #E0E0E0;
+        border: 1px solid #333333;
         border-radius: 8px;
-        padding: 0.5rem; /* Padding inside chart container */
-        background-color: #FFFFFF;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        padding: 0.5rem;
+        background-color: #1E1E1E; /* Darker grey for chart backgrounds */
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
     }
-    .stCodeBlock { /* For future code snippets, if any */
-        background-color: #F8F8F8;
-        border: 1px solid #E0E0E0;
-        border-left: 5px solid #1890FF; /* Accent border */
+    .stCodeBlock {
+        background-color: #2D2D2D; /* Darker grey for code blocks */
+        border: 1px solid #333333;
+        border-left: 5px solid #1890FF;
         border-radius: 8px;
         padding: 1rem;
         margin-bottom: 1rem;
+        color: #E0E0E0; /* Light text for code */
     }
 
     /* Chat messages */
@@ -234,30 +237,31 @@ st.markdown("""
         padding: 10px 15px;
         margin-bottom: 10px;
         border-radius: 15px;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        color: #E0E0E0; /* Light text for chat messages */
     }
     .chat-message-user {
-        background-color: #E6F7FF; /* Light blue for user */
+        background-color: #003366; /* Dark blue for user messages */
         margin-left: auto;
         margin-right: 0;
-        border-top-right-radius: 2px; /* Pointy corner for user's own message */
+        border-top-right-radius: 2px;
     }
     .chat-message-other {
-        background-color: #F8F9FA; /* Light grey for others */
+        background-color: #2D2D2D; /* Slightly lighter dark grey for others */
         margin-left: 0;
         margin-right: auto;
-        border-top-left-radius: 2px; /* Pointy corner for other's message */
+        border-top-left-radius: 2px;
     }
     .chat-avatar {
         font-size: 1.5em;
         margin-right: 10px;
     }
     .chat-role {
-        color: #1890FF;
+        color: #90CAF9; /* Lighter blue for role */
         font-weight: strong;
     }
     .chat-timestamp {
-        color: #888;
+        color: #A0A0A0; /* Lighter grey for timestamp */
         font-size: 0.8em;
     }
 </style>
@@ -395,7 +399,8 @@ with tabs[0]: # Corresponding to "📊 OEM Dashboard"
                     status_counts = supplier_df['agreement_status'].value_counts().reset_index()
                     status_counts.columns = ['Status', 'Count']
                     fig_status = px.pie(status_counts, values='Count', names='Status',
-                                        title='Distribution of Supplier Agreement Status', hole=0.3)
+                                        title='Distribution of Supplier Agreement Status', hole=0.3,
+                                        template='plotly_dark') # Set dark theme for Plotly
                     fig_status.update_traces(textposition='inside', textinfo='percent+label')
                     fig_status.update_layout(showlegend=True, margin=dict(l=20, r=20, t=30, b=20), height=300)
                     st.plotly_chart(fig_status, use_container_width=True)
@@ -408,7 +413,8 @@ with tabs[0]: # Corresponding to "📊 OEM Dashboard"
                     fig_audit_dist = px.histogram(supplier_df, x='last_audit_score', nbins=10,
                                                  title='Distribution of Last Audit Scores',
                                                  labels={'last_audit_score': 'Audit Score'},
-                                                 color_discrete_sequence=['#1890FF']) # Zenova Blue
+                                                 color_discrete_sequence=['#1890FF'],
+                                                 template='plotly_dark') # Set dark theme for Plotly
                     fig_audit_dist.update_layout(bargap=0.1, margin=dict(l=20, r=20, t=30, b=20), height=300)
                     st.plotly_chart(fig_audit_dist, use_container_width=True)
                 else:
@@ -423,7 +429,8 @@ with tabs[0]: # Corresponding to "📊 OEM Dashboard"
                     avg_delivery = supplier_df['on_time_delivery_rate'].mean()
                     st.metric(label="Overall OTD Rate", value=f"{avg_delivery:.1f}%", delta="Excellent!" if avg_delivery >= 95 else "Needs Improvement" if avg_delivery < 90 else None)
                     fig_otd = px.box(supplier_df, y='on_time_delivery_rate', title='On-Time Delivery Rate Distribution',
-                                     color_discrete_sequence=['#52C41A']) # Green for good performance
+                                     color_discrete_sequence=['#52C41A'],
+                                     template='plotly_dark') # Set dark theme for Plotly
                     fig_otd.update_layout(margin=dict(l=20, r=20, t=30, b=20), height=250)
                     st.plotly_chart(fig_otd, use_container_width=True)
                 else:
@@ -435,7 +442,8 @@ with tabs[0]: # Corresponding to "📊 OEM Dashboard"
                     avg_reject = supplier_df['quality_reject_rate'].mean()
                     st.metric(label="Overall Reject Rate", value=f"{avg_reject:.2f}%", delta="Low" if avg_reject < 0.5 else "High" if avg_reject > 1.0 else None, delta_color="inverse")
                     fig_reject = px.box(supplier_df, y='quality_reject_rate', title='Quality Reject Rate Distribution',
-                                        color_discrete_sequence=['#FF4D4F']) # Red for rejection
+                                        color_discrete_sequence=['#FF4D4F'],
+                                        template='plotly_dark') # Set dark theme for Plotly
                     fig_reject.update_layout(margin=dict(l=20, r=20, t=30, b=20), height=250)
                     st.plotly_chart(fig_reject, use_container_width=True)
                 else:
@@ -457,7 +465,8 @@ with tabs[0]: # Corresponding to "📊 OEM Dashboard"
                     fig_risk = px.pie(risk_counts, values='Count', names='Risk Level',
                                       title='Distribution of Supplier Risk Levels', hole=0.3,
                                       color='Risk Level',
-                                      color_discrete_map={'Low': '#52C41A', 'Medium': '#FAAD14', 'High': '#FF4D4F'}) # Green, Orange, Red
+                                      color_discrete_map={'Low': '#52C41A', 'Medium': '#FAAD14', 'High': '#FF4D4F'},
+                                      template='plotly_dark') # Set dark theme for Plotly
                     fig_risk.update_traces(textposition='inside', textinfo='percent+label')
                     fig_risk.update_layout(showlegend=True, margin=dict(l=20, r=20, t=30, b=20), height=300)
                     st.plotly_chart(fig_risk, use_container_width=True)
@@ -472,7 +481,8 @@ with tabs[0]: # Corresponding to "📊 OEM Dashboard"
                     fig_spend = px.bar(spend_by_category, x='primary_product_category', y='annual_spend_usd',
                                        title='Total Annual Spend by Product Category (USD)',
                                        labels={'primary_product_category': 'Product Category', 'annual_spend_usd': 'Annual Spend (USD)'},
-                                       color_discrete_sequence=px.colors.qualitative.Plotly) # Use a nice qualitative palette
+                                       color_discrete_sequence=px.colors.qualitative.Plotly,
+                                       template='plotly_dark') # Set dark theme for Plotly
                     fig_spend.update_layout(xaxis_title_text='Product Category', yaxis_title_text='Annual Spend (USD)',
                                             margin=dict(l=20, r=20, t=30, b=20), height=300)
                     st.plotly_chart(fig_spend, use_container_width=True)
@@ -547,7 +557,8 @@ with tabs[0]: # Corresponding to "📊 OEM Dashboard"
                     task_status_counts = projects_df['status'].value_counts().reset_index()
                     task_status_counts.columns = ['Status', 'Count']
                     fig_tasks = px.pie(task_status_counts, values='Count', names='Status',
-                                       title='Project Task Distribution', hole=0.3)
+                                       title='Project Task Distribution', hole=0.3,
+                                       template='plotly_dark') # Set dark theme for Plotly
                     fig_tasks.update_traces(textposition='inside', textinfo='percent+label')
                     fig_tasks.update_layout(showlegend=False, margin=dict(l=20, r=20, t=30, b=20), height=250)
                     st.plotly_chart(fig_tasks, use_container_width=True)
@@ -561,7 +572,8 @@ with tabs[0]: # Corresponding to "📊 OEM Dashboard"
                     asset_status_counts = assets_df['status'].value_counts().reset_index()
                     asset_status_counts.columns = ['Status', 'Count']
                     fig_assets = px.pie(asset_status_counts, values='Count', names='Status',
-                                        title='Asset Status Distribution', hole=0.3)
+                                        title='Asset Status Distribution', hole=0.3,
+                                        template='plotly_dark') # Set dark theme for Plotly
                     fig_assets.update_traces(textposition='inside', textinfo='percent+label')
                     fig_assets.update_layout(showlegend=False, margin=dict(l=20, r=20, t=30, b=20), height=250)
                     st.plotly_chart(fig_assets, use_container_width=True)
@@ -575,7 +587,8 @@ with tabs[0]: # Corresponding to "📊 OEM Dashboard"
                     audit_status_counts = audits_df['status'].value_counts().reset_index()
                     audit_status_counts.columns = ['Status', 'Count']
                     fig_audits = px.pie(audit_status_counts, values='Count', names='Status',
-                                        title='Audit Point Distribution', hole=0.3)
+                                        title='Audit Point Distribution', hole=0.3,
+                                        template='plotly_dark') # Set dark theme for Plotly
                     fig_audits.update_traces(textposition='inside', textinfo='percent+label')
                     fig_audits.update_layout(showlegend=False, margin=dict(l=20, r=20, t=30, b=20), height=250)
                     st.plotly_chart(fig_audits, use_container_width=True)
@@ -638,7 +651,8 @@ with tabs[0]: # Corresponding to "📊 OEM Dashboard"
                 parts_by_supplier = assets_df.groupby('supplier').size().reset_index(name='Number of Assets')
                 fig_parts = px.bar(parts_by_supplier, x='supplier', y='Number of Assets',
                                    title='Assets Managed by Each Supplier', color='supplier',
-                                   color_discrete_sequence=px.colors.qualitative.Bold)
+                                   color_discrete_sequence=px.colors.qualitative.Bold,
+                                   template='plotly_dark') # Set dark theme for Plotly
                 fig_parts.update_layout(margin=dict(l=20, r=20, t=30, b=20), height=300)
                 st.plotly_chart(fig_parts, use_container_width=True)
             else:
