@@ -4,6 +4,10 @@ import os
 from datetime import datetime
 
 st.set_page_config(page_title="Zenova SRP", layout="wide")
+if st.session_state.get("just_sent"):
+    st.session_state["just_sent"] = False
+    st.experimental_rerun()
+
 
 CHAT_FILE = "data/chat_history.csv"
 os.makedirs("data", exist_ok=True)
@@ -45,7 +49,9 @@ with tabs[0]:
     if st.button("Send"):
         if message.strip():
             append_message(user_role, message)
-            st.experimental_rerun()
+            st.session_state["just_sent"] = True
+            st.experimental_set_query_params(refresh=True)
+
 
 with tabs[1]:
     st.subheader("📁 File Upload & Preview")
