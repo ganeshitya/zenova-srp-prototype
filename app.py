@@ -60,8 +60,6 @@ def append_data(file_path, new_entry_df):
     df.to_csv(file_path, index=False)
 
 # --- Initialize CSV Files (without dummy data generation here) ---
-# Dummy data for these files will be assumed to be pre-existing or created via forms.
-# The supplier_dummy_data.csv is the only one pre-populated externally.
 user_roles_list = ["OEM", "Auditor"] # Removed Supplier A/B from generic roles as suppliers now come from supplier_dummy_data.csv
 
 initialize_csv(CHAT_FILE, ["role", "message", "timestamp"])
@@ -69,7 +67,15 @@ initialize_csv(FILES_FILE, ["filename", "type", "size", "uploader", "timestamp",
 initialize_csv(PROJECTS_FILE, ["task_id", "task_name", "status", "assigned_to", "due_date", "description", "input_pending"])
 initialize_csv(ASSETS_FILE, ["asset_id", "asset_name", "location", "status", "eol_date", "calibration_date", "notes", "supplier"])
 initialize_csv(AUDITS_FILE, ["audit_id", "point_description", "status", "assignee", "due_date", "resolution", "input_pending"])
-initialize_csv(SUPPLIER_DUMMY_DATA_FILE, ["supplier_id", "supplier_name", "contact_person", "email", "phone", "agreement_status", "last_audit_score", "notes"])
+
+# UPDATED SUPPLIER DUMMY DATA COLUMNS
+supplier_columns = [
+    "supplier_id", "supplier_name", "contact_person", "email", "phone",
+    "agreement_status", "last_audit_score", "notes",
+    "primary_product_category", "on_time_delivery_rate", "quality_reject_rate",
+    "risk_level", "certification", "annual_spend_usd", "last_performance_review_date"
+]
+initialize_csv(SUPPLIER_DUMMY_DATA_FILE, supplier_columns)
 
 
 # --- Sidebar Login ---
@@ -83,7 +89,6 @@ st.sidebar.markdown(f"**Zenova SRP** - #1 Supplier Resource Planning tool for OE
 
 
 # --- Initialize Streamlit Session State (Global Scope) ---
-# Load initial data for chat history
 chat_df = load_data(CHAT_FILE, columns=["role", "message", "timestamp"])
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = chat_df.to_dict(orient="records")
@@ -109,22 +114,22 @@ with tabs[0]:
         st.subheader("📊 OEM Performance Dashboard")
         st.markdown("Monitor key performance indicators across suppliers and projects.")
 
-        # Load all relevant data for the dashboard (now from existing CSVs)
+        # Load all relevant data for the dashboard
         projects_df = load_data(PROJECTS_FILE, columns=["task_id", "task_name", "status", "assigned_to", "due_date", "input_pending"])
         assets_df = load_data(ASSETS_FILE, columns=["asset_id", "asset_name", "location", "status", "supplier"])
         audits_df = load_data(AUDITS_FILE, columns=["audit_id", "point_description", "status", "assignee", "due_date", "input_pending"])
-        supplier_df = load_data(SUPPLIER_DUMMY_DATA_FILE, columns=["supplier_id", "supplier_name", "contact_person", "email", "phone", "agreement_status", "last_audit_score", "notes"])
+        supplier_df = load_data(SUPPLIER_DUMMY_DATA_FILE, columns=supplier_columns)
 
 
         st.markdown("---")
-        st.write("### Supplier Performance Metrics")
+        st.write("### Supplier Performance & Financial Overview")
 
         # Row for agreement status and audit score distribution
         col_sup1, col_sup2 = st.columns(2)
 
         with col_sup1:
             st.write("#### Supplier Agreement Status")
-            if not supplier_df.empty:
+            if not supplier_df.empty and 'agreement_status' in supplier_df.columns:
                 supplier_df['agreement_status'] = supplier_df['agreement_status'].fillna('Unknown').astype(str)
                 status_counts = supplier_df['agreement_status'].value_counts().reset_index()
                 status_counts.columns = ['Status', 'Count']
@@ -145,15 +150,60 @@ with tabs[0]:
                 st.info("No supplier data to show audit score distribution.")
 
         st.markdown("---")
-        st.write("#### Average Audit Score by Agreement Status")
-        if not supplier_df.empty and 'last_audit_score' in supplier_df.columns:
-            avg_audit_by_status = supplier_df.groupby('agreement_status')['last_audit_score'].mean().reset_index()
-            fig_avg_audit = px.bar(avg_audit_by_status, x='agreement_status', y='last_audit_score',
-                                   title='Average Last Audit Score by Agreement Status',
-                                   labels={'agreement_status': 'Agreement Status', 'last_audit_score': 'Average Audit Score'})
-            st.plotly_chart(fig_avg_audit, use_container_width=True)
+        col_performance1, col_performance2 = st.columns(2)
+        with col_performance1:
+            st.write("#### Average On-Time Delivery Rate (%)")
+            if not supplier_df.empty and 'on_time_delivery_rate' in supplier_df.columns:
+                avg_delivery = supplier_df['on_time_delivery_rate'].mean()
+                st.metric(label="Average OTD Rate", value=f"{avg_delivery:.1f}%")
+                fig_otd = px.box(supplier_df, y='on_time_delivery_rate', title='On-Time Delivery Rate Distribution')
+                st.plotly_chart(fig_otd, use_container_width=True)
+            else:
+                st.info("No on-time delivery data available.")
+
+        with col_performance2:
+            st.write("#### Average Quality Reject Rate (%)")
+            if not supplier_df.empty and 'quality_reject_rate' in supplier_df.columns:
+                avg_reject = supplier_df['quality_reject_rate'].mean()
+                st.metric(label="Average Reject Rate", value=f"{avg_reject:.2f}%")
+                fig_reject = px.box(supplier_df, y='quality_reject_rate', title='Quality Reject Rate Distribution')
+                st.plotly_chart(fig_reject, use_container_width=True)
+            else:
+                st.info("No quality reject rate data available.")
+
+        st.markdown("---")
+        col_risk_spend = st.columns(2)
+        with col_risk_spend[0]:
+            st.write("#### Supplier Risk Level Distribution")
+            if not supplier_df.empty and 'risk_level' in supplier_df.columns:
+                risk_counts = supplier_df['risk_level'].value_counts().reset_index()
+                risk_counts.columns = ['Risk Level', 'Count']
+                fig_risk = px.pie(risk_counts, values='Count', names='Risk Level',
+                                  title='Distribution of Supplier Risk Levels',
+                                  color_discrete_map={'Low': 'green', 'Medium': 'orange', 'High': 'red'})
+                st.plotly_chart(fig_risk, use_container_width=True)
+            else:
+                st.info("No supplier risk level data.")
+
+        with col_risk_spend[1]:
+            st.write("#### Annual Spend by Primary Product Category")
+            if not supplier_df.empty and 'annual_spend_usd' in supplier_df.columns and 'primary_product_category' in supplier_df.columns:
+                spend_by_category = supplier_df.groupby('primary_product_category')['annual_spend_usd'].sum().reset_index()
+                spend_by_category = spend_by_category.sort_values(by='annual_spend_usd', ascending=False)
+                fig_spend = px.bar(spend_by_category, x='primary_product_category', y='annual_spend_usd',
+                                   title='Total Annual Spend by Product Category (USD)',
+                                   labels={'primary_product_category': 'Product Category', 'annual_spend_usd': 'Annual Spend (USD)'})
+                st.plotly_chart(fig_spend, use_container_width=True)
+            else:
+                st.info("No annual spend or product category data.")
+
+        st.markdown("---")
+        st.write("#### Top 10 Suppliers by Annual Spend")
+        if not supplier_df.empty and 'annual_spend_usd' in supplier_df.columns:
+            top_spend_suppliers = supplier_df.sort_values(by='annual_spend_usd', ascending=False).head(10)
+            st.dataframe(top_spend_suppliers[['supplier_name', 'annual_spend_usd', 'primary_product_category']], use_container_width=True)
         else:
-            st.info("No supplier data to show average audit scores by status.")
+            st.info("No supplier spend data to show top suppliers.")
 
         st.markdown("---")
         col_audit1, col_audit2 = st.columns(2)
@@ -174,15 +224,26 @@ with tabs[0]:
                 st.info("No supplier data to show bottom suppliers.")
 
         st.markdown("---")
-        st.write("#### Suppliers with Agreements Due for Renewal")
+        st.write("#### Suppliers with Agreements Due for Renewal or Overdue Performance Reviews")
         if not supplier_df.empty:
             pending_renewal = supplier_df[supplier_df['agreement_status'] == 'Pending Renewal']
-            if not pending_renewal.empty:
-                st.dataframe(pending_renewal[['supplier_name', 'contact_person', 'email', 'agreement_status']], use_container_width=True)
+            st.dataframe(pending_renewal[['supplier_name', 'contact_person', 'email', 'agreement_status']], use_container_width=True)
+
+            st.write("##### Suppliers with Overdue Performance Reviews (Past 1 Year)")
+            supplier_df['last_performance_review_date'] = pd.to_datetime(supplier_df['last_performance_review_date'], errors='coerce')
+            overdue_reviews = supplier_df[
+                (supplier_df['last_performance_review_date'].notna()) &
+                (supplier_df['last_performance_review_date'] < (datetime.today() - timedelta(days=365)))
+            ]
+            if not overdue_reviews.empty:
+                st.dataframe(overdue_reviews[['supplier_name', 'contact_person', 'email', 'last_performance_review_date']], use_container_width=True)
             else:
-                st.info("No suppliers currently pending renewal.")
+                st.info("No suppliers with overdue performance reviews.")
+
+            if pending_renewal.empty and overdue_reviews.empty:
+                 st.info("No suppliers currently pending renewal or with overdue performance reviews.")
         else:
-            st.info("No supplier data to check for pending renewals.")
+            st.info("No supplier data to check for pending renewals or overdue reviews.")
 
 
         st.markdown("---")
@@ -441,113 +502,4 @@ with tabs[4]:
 
             if asset_submitted and asset_id_val and asset_name:
                 new_asset = {
-                    "asset_id": asset_id_val,
-                    "asset_name": asset_name,
-                    "location": location,
-                    "status": asset_status,
-                    "eol_date": eol_date.strftime("%Y-%m-%d") if eol_date else None,
-                    "calibration_date": calibration_date.strftime("%Y-%m-%d") if calibration_date else None,
-                    "notes": notes,
-                    "supplier": asset_supplier
-                }
-                append_data(ASSETS_FILE, pd.DataFrame([new_asset]))
-                st.success(f"Asset '{asset_name}' ({asset_id_val}) added successfully!")
-                st.rerun()
-            elif asset_submitted:
-                st.error("Asset ID and Asset Name are required.")
-
-    st.markdown("---")
-    st.subheader("Asset Inventory Log")
-    assets_df = load_data(ASSETS_FILE)
-    if not assets_df.empty:
-        st.dataframe(assets_df, use_container_width=True)
-    else:
-        st.info("No assets logged yet. Add assets using the 'Add New Asset' expander above.")
-
-# --- Audit Management Module ---
-with tabs[5]:
-    st.subheader("🔍 Supplier Assessment Report & Actions Tracking")
-    st.markdown("Features: Assessment management, Tracking open points with reminders, Third-party audit scores access, Deviation management. *Future: Reminder system, Score integration.*")
-
-    with st.expander("Add New Audit Point / Finding", expanded=False):
-        with st.form("new_audit_point_form", clear_on_submit=True):
-            audit_id_val = f"AUDIT-{int(datetime.now().timestamp())}"
-            point_description = st.text_area("Audit Point/Finding Description")
-            audit_status_options = ["Open", "In Progress", "Resolved", "Pending Verification", "Closed", "Deviation Accepted"]
-            audit_status = st.selectbox("Status", audit_status_options)
-            assignee = st.selectbox("Assignee", user_roles + ["Cross-functional Team"])
-            due_date_audit = st.date_input("Due Date for Resolution", min_value=datetime.today(), key="due_date_audit")
-            resolution = st.text_area("Resolution / Corrective Action")
-            input_pending_audit = st.checkbox("Requires Input from Stakeholders?", value=False)
-            audit_submitted = st.form_submit_button("Add Audit Point")
-
-            if audit_submitted and point_description:
-                new_audit_point = {
-                    "audit_id": audit_id_val,
-                    "point_description": point_description,
-                    "status": audit_status,
-                    "assignee": assignee,
-                    "due_date": due_date_audit.strftime("%Y-%m-%d"),
-                    "resolution": resolution,
-                    "input_pending": "Yes" if input_pending_audit else "No"
-                }
-                append_data(AUDITS_FILE, pd.DataFrame([new_audit_point]))
-                st.success(f"Audit point '{audit_id_val}' added successfully!")
-                st.rerun()
-            elif audit_submitted:
-                st.error("Audit Point Description is required.")
-
-    st.markdown("---")
-    st.subheader("Audit Records & Open Points")
-    audits_df = load_data(AUDITS_FILE)
-    if not audits_df.empty:
-        st.dataframe(audits_df, use_container_width=True)
-    else:
-        st.info("No audit points recorded yet. Add audit points using the 'Add New Audit Point / Finding' expander above.")
-
-# --- Supplier Records Module ---
-with tabs[6]:
-    st.subheader("👥 Supplier Records")
-    st.markdown("View and manage detailed information about your suppliers.")
-
-    supplier_df = load_data(SUPPLIER_DUMMY_DATA_FILE, columns=["supplier_id", "supplier_name", "contact_person", "email", "phone", "agreement_status", "last_audit_score", "notes"])
-
-    if not supplier_df.empty:
-        st.dataframe(supplier_df, use_container_width=True)
-    else:
-        st.info("No supplier records available. Ensure 'supplier_dummy_data.csv' is in your 'data/' folder.")
-
-    st.markdown("---")
-    st.write("### Add New Supplier Record")
-    with st.expander("Add New Supplier", expanded=False):
-        with st.form("new_supplier_form", clear_on_submit=True):
-            new_supplier_id = st.text_input("Supplier ID (e.g., SUP-006)")
-            new_supplier_name = st.text_input("Supplier Name")
-            new_contact_person = st.text_input("Contact Person")
-            new_email = st.text_input("Email")
-            new_phone = st.text_input("Phone")
-            new_agreement_status = st.selectbox("Agreement Status", ["Active", "Pending Renewal", "Terminated", "On Hold"])
-            new_last_audit_score = st.number_input("Last Audit Score", min_value=0, max_value=100, value=80)
-            new_notes = st.text_area("Notes")
-            supplier_submitted = st.form_submit_button("Add Supplier")
-
-            if supplier_submitted and new_supplier_id and new_supplier_name:
-                new_supplier_entry = {
-                    "supplier_id": new_supplier_id,
-                    "supplier_name": new_supplier_name,
-                    "contact_person": new_contact_person,
-                    "email": new_email,
-                    "phone": new_phone,
-                    "agreement_status": new_agreement_status,
-                    "last_audit_score": new_last_audit_score,
-                    "notes": new_notes
-                }
-                append_data(SUPPLIER_DUMMY_DATA_FILE, pd.DataFrame([new_supplier_entry]))
-                st.success(f"Supplier '{new_supplier_name}' ({new_supplier_id}) added successfully!")
-                st.rerun()
-            elif supplier_submitted:
-                st.error("Supplier ID and Supplier Name are required.")
-
-
-st.sidebar.markdown("---")
-st.sidebar.info("This is a demo application. Data is stored locally in CSV files in the 'data' directory.")
+                    "asset_id": asset
