@@ -1127,7 +1127,7 @@ with tabs[6]: # Corresponding to "💬 Chat"
     with chat_col_left:
         st.markdown("#### Conversations")
         
-        # Get all unique chat participants excluding the current user role
+        # Get all unique chat partners excluding the current user role
         all_chat_partners = []
         if user_role == "OEM":
             # OEM can chat with all suppliers and Auditor
@@ -1153,7 +1153,6 @@ with tabs[6]: # Corresponding to "💬 Chat"
             # Display chat partners as selectable list items
             st.markdown('<div class="chat-sidebar">', unsafe_allow_html=True) # Apply CSS class for sidebar
             for partner in all_chat_partners:
-                # Using st.button for click behavior, styled with markdown/css
                 # Add "selected" class based on whether it's the active tab
                 selected_class = " selected" if st.session_state.active_chat_tab == partner else ""
                 
@@ -1178,6 +1177,7 @@ with tabs[6]: # Corresponding to "💬 Chat"
         elif not st.session_state.open_chat_tabs: # If no open tabs, set active_chat_tab to None
             st.session_state.active_chat_tab = None
 
+        # IMPORTANT: Only call st.tabs if there are tabs to display
         if not st.session_state.open_chat_tabs:
             st.info("Select a conversation from the left sidebar to open a chat.")
             if user_role.startswith("Supplier") or user_role == "Auditor":
@@ -1185,9 +1185,14 @@ with tabs[6]: # Corresponding to "💬 Chat"
         else:
             # Get the index of the active tab for display
             active_tab_index = 0 # Default to the first tab
-            if st.session_state.active_chat_tab and st.session_state.active_chat_tab in st.session_state.open_chat_tabs:
+            if st.session_state.active_chat_tab in st.session_state.open_chat_tabs:
                 active_tab_index = st.session_state.open_chat_tabs.index(st.session_state.active_chat_tab)
-            
+            # Ensure the index is within bounds, especially if active_chat_tab somehow became invalid
+            else:
+                # This case implies active_chat_tab is not in open_chat_tabs,
+                # but open_chat_tabs is not empty. We default to 0.
+                active_tab_index = 0 # Fallback to the first tab if active_chat_tab is missing
+
             chat_tabs = st.tabs(st.session_state.open_chat_tabs, key="individual_chat_tabs", index=active_tab_index)
 
             for i, chat_partner_name in enumerate(st.session_state.open_chat_tabs):
