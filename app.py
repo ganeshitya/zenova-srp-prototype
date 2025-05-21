@@ -229,163 +229,104 @@ st.markdown("""
         color: #E0E0E0; /* Light text for code */
     }
 
-    /* WhatsApp-like Chat Styling */
-    .chat-container-main {
+    /* Mailbox Specific Styling */
+    .mailbox-container {
         display: flex;
-        height: 70vh; /* Set a fixed height for the chat area */
+        flex-direction: column;
         border: 1px solid #333333;
         border-radius: 12px;
-        overflow: hidden; /* Ensures child elements stay within bounds */
         background-color: #1E1E1E;
+        padding: 20px;
+        min-height: 600px; /* Ensure enough height for content */
     }
 
-    .chat-sidebar {
-        flex: 0 0 250px; /* Fixed width for supplier list */
-        border-right: 1px solid #333333;
-        padding: 15px;
-        background-color: #282828; /* Slightly darker for the list */
-        overflow-y: auto; /* Scrollable if many suppliers */
-    }
-
-    .chat-sidebar h4 {
-        color: #FFFFFF;
-        margin-bottom: 15px;
-    }
-
-    .supplier-list-item {
-        padding: 12px 10px;
+    .message-card {
+        background-color: #2D2D2D;
+        border-left: 5px solid #1890FF;
         border-radius: 8px;
-        margin-bottom: 5px;
+        padding: 15px 20px;
+        margin-bottom: 15px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         cursor: pointer;
-        transition: background-color 0.2s;
-        color: #E0E0E0;
+        transition: background-color 0.2s, box-shadow 0.2s;
     }
-
-    .supplier-list-item:hover {
-        background-color: #3A3A3A; /* Hover state for list items */
+    .message-card:hover {
+        background-color: #3A3A3A;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.3);
     }
-
-    .supplier-list-item.selected {
-        background-color: #003366; /* Zenova blue for selected */
+    .message-card.unread {
+        border-left: 5px solid #FF4D4F; /* Red border for unread */
+        font-weight: bold;
+    }
+    .message-card h5 {
         color: #FFFFFF;
-        font-weight: bold;
+        margin-bottom: 5px;
     }
-    /* Style for the button that acts as a list item */
-    .chat-sidebar button {
-        background-color: transparent !important;
-        border: none !important;
-        padding: 12px 10px !important;
-        margin-bottom: 5px !important;
-        width: 100% !important;
-        text-align: left !important;
-        color: #E0E0E0 !important;
-        font-weight: normal !important;
-        border-radius: 8px !important;
-    }
-    .chat-sidebar button:hover {
-        background-color: #3A3A3A !important;
-        color: #E0E0E0 !important;
-    }
-    .chat-sidebar button.selected {
-        background-color: #003366 !important;
-        color: #FFFFFF !important;
-        font-weight: bold !important;
-    }
-
-
-    .chat-main {
-        flex: 1; /* Takes remaining space */
-        display: flex;
-        flex-direction: column;
-        padding: 0px; /* Padding will be handled by sub-tabs */
-        background-color: #1E1E1E; /* Same as main card background */
-    }
-
-    .chat-messages {
-        flex: 1; /* Takes up space for messages */
-        overflow-y: auto; /* Make messages scrollable */
-        padding-right: 10px; /* For scrollbar space */
-        padding-top: 10px; /* Add some top padding */
-        display: flex;
-        flex-direction: column-reverse; /* Newest messages at bottom */
-    }
-
-    .chat-message-container {
-        display: flex;
-        align-items: flex-start;
-        word-break: break-word;
-        padding: 8px 12px;
-        margin-bottom: 8px;
-        border-radius: 15px;
-        max-width: 75%; /* Limit message width */
-        box-shadow: 0 1px 2px rgba(0,0,0,0.15); /* Slightly stronger shadow for bubbles */
-        color: #E0E0E0;
-    }
-    .chat-message-user {
-        background-color: #003366; /* Dark blue for current user's messages */
-        margin-left: auto;
-        margin-right: 0;
-        border-bottom-right-radius: 2px; /* Pointy corner for user's own message */
-    }
-    .chat-message-other {
-        background-color: #3A3A3A; /* Dark grey for other's messages */
-        margin-left: 0;
-        margin-right: auto;
-        border-bottom-left-radius: 2px; /* Pointy corner for other's message */
-    }
-    .chat-avatar {
-        font-size: 1.2em; /* Slightly smaller avatar */
-        margin-right: 8px;
-    }
-    .chat-role {
-        color: #90CAF9; /* Lighter blue for role in chat bubble */
-        font-weight: bold;
+    .message-card p {
         font-size: 0.9em;
+        color: #B0B0B0;
+        margin-bottom: 5px;
     }
-    .chat-timestamp {
-        color: #A0A0A0; /* Lighter grey for timestamp in chat bubble */
-        font-size: 0.7em;
-        margin-left: 8px;
-    }
-    .chat-text {
-        font-size: 0.95em;
-        line-height: 1.4;
+    .message-card .message-meta {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.8em;
+        color: #888888;
+        margin-top: 10px;
     }
 
-    .chat-input-area {
-        padding: 15px; /* Padding inside the input area */
-        border-top: 1px solid #333333;
-        display: flex;
-        gap: 10px;
-        align-items: center;
+    .message-detail-view {
+        background-color: #282828;
+        border: 1px solid #3A3A3A;
+        border-radius: 8px;
+        padding: 20px;
+        margin-top: 20px;
     }
-    .chat-input-area .stTextInput > div > div > input {
-        background-color: #2D2D2D; /* Darker input background */
-        color: #E0E0E0; /* Light text in input */
+    .message-detail-view h4 {
+        color: #90CAF9;
+        margin-bottom: 10px;
+    }
+    .message-detail-view .message-body {
+        background-color: #1E1E1E;
+        border-left: 3px solid #096DD9;
+        padding: 15px;
+        border-radius: 6px;
+        margin-bottom: 20px;
+        color: #E0E0E0;
+        white-space: pre-wrap; /* Preserve whitespace and line breaks */
+    }
+    .reply-section {
+        border-top: 1px solid #3A3A3A;
+        padding-top: 20px;
+        margin-top: 20px;
+    }
+    .reply-section .stTextArea textarea {
+        background-color: #1E1E1E;
+        color: #E0E0E0;
         border: 1px solid #555555;
         border-radius: 8px;
-        padding: 10px;
     }
-    .chat-input-area .stButton > button {
-        padding: 0.75rem 1.25rem; /* Adjust button size */
+    .reply-list {
+        margin-top: 20px;
+        padding-left: 15px;
+        border-left: 2px dashed #555555;
     }
-
-    /* Sub-tabs for individual chats */
-    .stTabs [data-testid="stTabContent"] {
-        padding: 0px !important; /* Remove internal padding if outer container already has it */
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-    }
-    .chat-tab-header {
-        border-bottom: 1px solid #333333;
+    .single-reply {
+        background-color: #3A3A3A;
+        border-radius: 8px;
         padding: 10px 15px;
-        margin-bottom: 0px;
-        color: #FFFFFF;
-        font-size: 1.3em;
-        font-weight: 600;
+        margin-bottom: 10px;
+        font-size: 0.9em;
+        color: #E0E0E0;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        white-space: pre-wrap;
     }
-
+    .single-reply .reply-meta {
+        font-size: 0.75em;
+        color: #A0A0A0;
+        margin-bottom: 5px;
+        font-style: italic;
+    }
 
 </style>
 """, unsafe_allow_html=True)
@@ -393,7 +334,8 @@ st.markdown("""
 
 # --- File Paths & Directory Setup ---
 DATA_DIR = "data"
-CHAT_FILE = os.path.join(DATA_DIR, "chat_history.csv")
+# CHAT_FILE = os.path.join(DATA_DIR, "chat_history.csv") # REMOVED
+NOTIFICATIONS_FILE = os.path.join(DATA_DIR, "notifications.csv") # NEW MAILBOX FILE
 FILES_FILE = os.path.join(DATA_DIR, "uploaded_files.csv")
 PROJECTS_FILE = os.path.join(DATA_DIR, "project_tasks.csv")
 ASSETS_FILE = os.path.join(DATA_DIR, "assets.csv")
@@ -442,8 +384,18 @@ def append_data(file_path, new_entry_df):
     df = pd.concat([df_existing, new_entry_df], ignore_index=True)
     df.to_csv(file_path, index=False)
 
+def update_data(file_path, df_to_save):
+    """Overwrites the entire CSV file with the given DataFrame."""
+    df_to_save.to_csv(file_path, index=False)
+
+
 # --- Initialize CSV Files ---
-initialize_csv(CHAT_FILE, ["role", "message", "timestamp", "chat_partner"])
+# initialize_csv(CHAT_FILE, ["role", "message", "timestamp", "chat_partner"]) # REMOVED
+notification_columns = [
+    "notification_id", "sender_role", "recipient_role", "subject", "message",
+    "timestamp", "status", "parent_notification_id" # status: Sent, Read, Replied
+]
+initialize_csv(NOTIFICATIONS_FILE, notification_columns) # NEW
 initialize_csv(FILES_FILE, ["filename", "type", "size", "uploader", "timestamp", "path"])
 initialize_csv(PROJECTS_FILE, ["task_id", "task_name", "status", "assigned_to", "due_date", "description", "input_pending"])
 initialize_csv(ASSETS_FILE, ["asset_id", "asset_name", "location", "status", "eol_date", "calibration_date", "notes", "supplier"])
@@ -480,7 +432,7 @@ tab_titles = [
     "📅 Project Management",
     "📋 Audit Management",
     "📁 File Management",
-    "💬 Chat"
+    "📧 Mailbox" # Changed from "💬 Chat" to "📧 Mailbox"
 ]
 
 # Create horizontal tabs
@@ -488,24 +440,14 @@ tabs = st.tabs(tab_titles)
 
 
 # --- Initialize Streamlit Session State (Global Scope) ---
-chat_df_initial = load_data(CHAT_FILE, columns=["role", "message", "timestamp", "chat_partner"])
-if "chat_history_df" not in st.session_state:
-    st.session_state.chat_history_df = chat_df_initial
+if "notifications_df" not in st.session_state:
+    st.session_state.notifications_df = load_data(NOTIFICATIONS_FILE, columns=notification_columns)
 
-# Maintain a list of open chat tabs (supplier names)
-if "open_chat_tabs" not in st.session_state:
-    st.session_state.open_chat_tabs = []
+if "mailbox_view" not in st.session_state:
+    st.session_state.mailbox_view = "inbox" # Can be "inbox", "sent", "compose", "view_message"
 
-# Which tab is currently active (used for the sub-tabs in chat)
-if "active_chat_tab" not in st.session_state:
-    st.session_state.active_chat_tab = None
-
-# For Suppliers/Auditors, pre-select OEM as the only potential chat partner
-if user_role.startswith("Supplier") or user_role == "Auditor":
-    if "OEM" not in st.session_state.open_chat_tabs:
-        st.session_state.open_chat_tabs.append("OEM")
-    if st.session_state.active_chat_tab != "OEM": # Only set if not already OEM
-        st.session_state.active_chat_tab = "OEM"
+if "selected_notification_id" not in st.session_state:
+    st.session_state.selected_notification_id = None
 
 
 # --- Main Application Content based on Tab Selection ---
@@ -1116,159 +1058,237 @@ with tabs[5]: # Corresponding to "📁 File Management"
         else:
             st.info("No files uploaded yet. Use the section above to upload your documents.")
 
-# --- Chat Module ---
-with tabs[6]: # Corresponding to "💬 Chat"
-    st.subheader("Inter-Company Communication Channel")
-    st.markdown("Engage in real-time, secured communication with your suppliers and internal teams. Facilitate quick queries and collaborative discussions.")
+# --- Mailbox Module (NEW) ---
+with tabs[6]: # Corresponding to "📧 Mailbox"
+    st.subheader("Inter-Company Mailbox")
+    st.markdown("Send notifications, receive messages, and manage communication with other entities within the Zenova SRP ecosystem.")
 
-    # Main chat container with two columns
-    st.markdown('<div class="chat-container-main">', unsafe_allow_html=True)
-    chat_col_left, chat_col_right = st.columns([0.3, 0.7])
+    st.markdown('<div class="mailbox-container">', unsafe_allow_html=True)
 
-    with chat_col_left:
-        st.markdown("#### Conversations")
+    # Mailbox Navigation Tabs
+    mailbox_tabs = st.tabs(["📥 Inbox", "📤 Sent", "✍️ Compose Notification"])
+
+    with mailbox_tabs[0]: # Inbox Tab
+        st.markdown("### Your Received Notifications")
         
-        # Get all unique chat partners excluding the current user role
-        all_chat_partners = []
-        if user_role == "OEM":
-            # OEM can chat with all suppliers and Auditor
-            supplier_df = load_data(SUPPLIER_DUMMY_DATA_FILE, columns=["supplier_name"])
-            all_chat_partners.extend(supplier_df['supplier_name'].tolist())
-            all_chat_partners.append("Auditor")
-            # Remove duplicates and sort
-            all_chat_partners = sorted(list(set(all_chat_partners)))
-        elif user_role.startswith("Supplier") or user_role == "Auditor":
-            # Suppliers/Auditors can only chat with OEM
-            all_chat_partners = ["OEM"]
-        
-        # Filter chat partners based on search input if OEM
-        search_query = ""
-        if user_role == "OEM":
-            search_query = st.text_input("Search Supplier", key="supplier_search_chat", placeholder="Type supplier name...", label_visibility="collapsed")
-            if search_query:
-                all_chat_partners = [p for p in all_chat_partners if search_query.lower() in p.lower()]
-        
-        if not all_chat_partners:
-            st.info("No available chat partners.")
+        # Filter messages where current user is the recipient, and it's not a reply
+        inbox_messages = st.session_state.notifications_df[
+            (st.session_state.notifications_df['recipient_role'] == user_role) &
+            (st.session_state.notifications_df['parent_notification_id'].isna()) # Only show top-level messages
+        ].sort_values(by="timestamp", ascending=False)
+
+        if inbox_messages.empty:
+            st.info("Your inbox is empty.")
         else:
-            # Display chat partners as selectable list items
-            st.markdown('<div class="chat-sidebar">', unsafe_allow_html=True) # Apply CSS class for sidebar
-            for partner in all_chat_partners:
-                # Add "selected" class based on whether it's the active tab
-                selected_class = " selected" if st.session_state.active_chat_tab == partner else ""
+            st.markdown('<div style="max-height: 400px; overflow-y: auto;">', unsafe_allow_html=True) # Scrollable area for messages
+            for idx, row in inbox_messages.iterrows():
+                notification_id = row['notification_id']
+                sender = row['sender_role']
+                subject = row['subject']
+                timestamp = row['timestamp']
+                status = row['status']
+
+                # Determine if the message is unread for the current user
+                is_unread = (status != "Read" and status != "Replied" and row['recipient_role'] == user_role)
+
+                card_class = "message-card unread" if is_unread else "message-card"
                 
-                # Use a unique key for each button to prevent issues
-                button_key = f"chat_partner_select_button_{partner}"
+                # Use st.form_submit_button to make the entire card clickable
+                with st.container():
+                    st.markdown(f'<div class="{card_class}">', unsafe_allow_html=True)
+                    col_msg1, col_msg2 = st.columns([0.7, 0.3])
+                    with col_msg1:
+                        st.markdown(f"<h5>Subject: {subject}</h5>", unsafe_allow_html=True)
+                        st.markdown(f"<p>From: {sender}</p>", unsafe_allow_html=True)
+                    with col_msg2:
+                        st.markdown(f"<div class='message-meta'><span>Status: {status}</span><span>{timestamp}</span></div>", unsafe_allow_html=True)
+                    st.markdown('</div>', unsafe_allow_html=True)
 
-                if st.button(
-                    f"**{partner}**",
-                    key=button_key,
-                    use_container_width=True,
-                    help=f"Click to open chat with {partner}"
-                ):
-                    if partner not in st.session_state.open_chat_tabs:
-                        st.session_state.open_chat_tabs.append(partner)
-                    st.session_state.active_chat_tab = partner
-                    st.rerun() # Rerun to switch to the new tab
-            st.markdown('</div>', unsafe_allow_html=True)
+                    # Create a hidden button to trigger the view when the div is clicked
+                    # This is a common workaround for making custom clickable elements in Streamlit
+                    if st.button("View", key=f"view_inbox_{notification_id}", use_container_width=True):
+                        st.session_state.selected_notification_id = notification_id
+                        st.session_state.mailbox_view = "view_message"
+                        # Mark as read
+                        if row['status'] == "Sent": # Only mark as read if it was just "Sent" (not already Replied)
+                            st.session_state.notifications_df.loc[idx, 'status'] = "Read"
+                            update_data(NOTIFICATIONS_FILE, st.session_state.notifications_df)
+                        st.rerun()
+            st.markdown('</div>', unsafe_allow_html=True) # End scrollable area
 
 
-    with chat_col_right:
-        # --- Robust Logic for managing active chat tab ---
-        # 1. If open_chat_tabs is empty, there are no tabs to display.
-        if not st.session_state.open_chat_tabs:
-            st.info("Select a conversation from the left sidebar to open a chat.")
-            if user_role.startswith("Supplier") or user_role == "Auditor":
-                st.warning("Note: Suppliers and Auditors can only chat with 'OEM'.")
+    with mailbox_tabs[1]: # Sent Tab
+        st.markdown("### Your Sent Notifications")
+
+        # Filter messages where current user is the sender (top-level messages or replies)
+        sent_messages = st.session_state.notifications_df[
+            st.session_state.notifications_df['sender_role'] == user_role
+        ].sort_values(by="timestamp", ascending=False)
+
+        if sent_messages.empty:
+            st.info("You haven't sent any notifications yet.")
         else:
-            # 2. Ensure active_chat_tab is valid and set correctly
-            if st.session_state.active_chat_tab not in st.session_state.open_chat_tabs:
-                # If the current active tab is not in the open tabs, default to the first one
-                st.session_state.active_chat_tab = st.session_state.open_chat_tabs[0]
+            st.markdown('<div style="max-height: 400px; overflow-y: auto;">', unsafe_allow_html=True) # Scrollable area for messages
+            for idx, row in sent_messages.iterrows():
+                notification_id = row['notification_id']
+                recipient = row['recipient_role']
+                subject = row['subject']
+                timestamp = row['timestamp']
+                status = row['status'] # Status from sender's perspective (e.g., "Sent", "Read", "Replied")
+                parent_id = row['parent_notification_id']
+
+                # Don't show replies as separate top-level items in sent list if the original is also listed
+                if pd.notna(parent_id):
+                    continue
+
+                card_class = "message-card"
+                
+                with st.container():
+                    st.markdown(f'<div class="{card_class}">', unsafe_allow_html=True)
+                    col_msg1, col_msg2 = st.columns([0.7, 0.3])
+                    with col_msg1:
+                        st.markdown(f"<h5>Subject: {subject}</h5>", unsafe_allow_html=True)
+                        st.markdown(f"<p>To: {recipient}</p>", unsafe_allow_html=True)
+                    with col_msg2:
+                        st.markdown(f"<div class='message-meta'><span>Status: {status}</span><span>{timestamp}</span></div>", unsafe_allow_html=True)
+                    st.markdown('</div>', unsafe_allow_html=True)
+
+                    if st.button("View", key=f"view_sent_{notification_id}", use_container_width=True):
+                        st.session_state.selected_notification_id = notification_id
+                        st.session_state.mailbox_view = "view_message"
+                        st.rerun()
+            st.markdown('</div>', unsafe_allow_html=True) # End scrollable area
+
+
+    with mailbox_tabs[2]: # Compose Tab
+        st.markdown("### Compose New Notification")
+
+        # Define possible recipients based on user role
+        available_recipients = []
+        if user_role == "OEM":
+            supplier_df_compose = load_data(SUPPLIER_DUMMY_DATA_FILE, columns=["supplier_name"])
+            available_recipients.extend(supplier_df_compose['supplier_name'].tolist())
+            available_recipients.append("Auditor")
+        elif user_role.startswith("Supplier") or user_role == "Auditor":
+            available_recipients.append("OEM")
+
+        if not available_recipients:
+            st.warning("No available recipients for your role.")
+        else:
+            with st.form("compose_notification_form", clear_on_submit=True):
+                recipient = st.selectbox("Recipient", available_recipients)
+                subject = st.text_input("Subject")
+                message_content = st.text_area("Message", height=200)
+
+                send_button = st.form_submit_button("✉️ Send Notification")
+
+                if send_button:
+                    if recipient and subject and message_content:
+                        new_notification_id = f"MSG-{int(datetime.now().timestamp())}-{np.random.randint(1000, 9999)}"
+                        new_notification = {
+                            "notification_id": new_notification_id,
+                            "sender_role": user_role,
+                            "recipient_role": recipient,
+                            "subject": subject,
+                            "message": message_content,
+                            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                            "status": "Sent",
+                            "parent_notification_id": None
+                        }
+                        append_data(NOTIFICATIONS_FILE, pd.DataFrame([new_notification]))
+                        st.session_state.notifications_df = load_data(NOTIFICATIONS_FILE, columns=notification_columns) # Refresh dataframe
+                        st.success(f"✅ Notification sent to {recipient}!")
+                        st.session_state.mailbox_view = "sent" # Redirect to sent messages after sending
+                        st.rerun()
+                    else:
+                        st.error("❗ Please fill in all fields (Recipient, Subject, Message).")
+
+    # Display single message view
+    if st.session_state.mailbox_view == "view_message" and st.session_state.selected_notification_id:
+        selected_msg_id = st.session_state.selected_notification_id
+        
+        # Find the main message
+        message_row = st.session_state.notifications_df[
+            st.session_state.notifications_df['notification_id'] == selected_msg_id
+        ]
+        
+        if not message_row.empty:
+            message = message_row.iloc[0]
             
-            # Get the index of the active tab for display
-            active_tab_index = st.session_state.open_chat_tabs.index(st.session_state.active_chat_tab)
-            
-            # Display the tabs
-            chat_tabs = st.tabs(st.session_state.open_chat_tabs, key="individual_chat_tabs", index=active_tab_index)
+            # Get replies to this message (where parent_notification_id matches)
+            replies_df = st.session_state.notifications_df[
+                st.session_state.notifications_df['parent_notification_id'] == selected_msg_id
+            ].sort_values(by="timestamp", ascending=True)
 
-            for i, chat_partner_name in enumerate(st.session_state.open_chat_tabs):
-                with chat_tabs[i]:
-                    st.markdown(f'<div class="chat-main">', unsafe_allow_html=True)
-                    st.markdown(f'<div class="chat-tab-header">Chat with {chat_partner_name}</div>', unsafe_allow_html=True)
+            st.markdown('<div class="message-detail-view">', unsafe_allow_html=True)
+            st.button("↩️ Back to Inbox", on_click=lambda: (setattr(st.session_state, 'mailbox_view', 'inbox'), setattr(st.session_state, 'selected_notification_id', None)))
 
-                    # Filter messages for the specific chat partner in this tab
-                    filtered_messages_df = st.session_state.chat_history_df[
-                        ((st.session_state.chat_history_df['role'] == user_role) &
-                         (st.session_state.chat_history_df['chat_partner'] == chat_partner_name)) |
-                        ((st.session_state.chat_history_df['role'] == chat_partner_name) &
-                         (st.session_state.chat_history_df['chat_partner'] == user_role))
-                    ]
-                    
-                    # Sort by timestamp to display correctly (newest at bottom)
-                    display_messages_df = filtered_messages_df.sort_values(by="timestamp", ascending=True)
+            st.markdown(f"#### Subject: {message['subject']}")
+            st.markdown(f"<p><strong>From:</strong> {message['sender_role']} <strong>To:</strong> {message['recipient_role']}</p>", unsafe_allow_html=True)
+            st.markdown(f"<p><strong>Sent:</strong> {message['timestamp']}</p>", unsafe_allow_html=True)
+            st.markdown(f"<div class='message-body'>{message['message']}</div>", unsafe_allow_html=True)
 
-                    # Display chat messages
-                    st.markdown('<div class="chat-messages">', unsafe_allow_html=True)
-                    for _, msg_data in display_messages_df.iterrows():
-                        role = str(msg_data.get("role", "Unknown"))
-                        message_content = str(msg_data.get("message", ""))
-                        timestamp = str(msg_data.get("timestamp", ""))
-
-                        is_user_message = (role == user_role)
-                        
-                        st.markdown(f"""
-                        <div class="chat-message-container {'chat-message-user' if is_user_message else 'chat-message-other'}">
-                            <span class="chat-avatar">{"🧑‍💻" if is_user_message else "🏢" if role == "OEM" else "👤"}</span>
-                            <div>
-                                <strong class="chat-role">{role}</strong> <small class="chat-timestamp">({timestamp})</small><br>
-                                <div class="chat-text">{message_content}</div>
+            # Display replies
+            if not replies_df.empty:
+                st.markdown("---")
+                st.markdown("#### Replies:")
+                st.markdown('<div class="reply-list">', unsafe_allow_html=True)
+                for _, reply_row in replies_df.iterrows():
+                    st.markdown(f"""
+                        <div class="single-reply">
+                            <div class="reply-meta">
+                                From: {reply_row['sender_role']} | To: {reply_row['recipient_role']} | Sent: {reply_row['timestamp']}
                             </div>
+                            <div>{reply_row['message']}</div>
                         </div>
-                        """, unsafe_allow_html=True)
-                    st.markdown('</div>', unsafe_allow_html=True) # End chat-messages
+                    """, unsafe_allow_html=True)
+                st.markdown('</div>', unsafe_allow_html=True)
 
-                    # Message input area for the current tab
-                    st.markdown('<div class="chat-input-area">', unsafe_allow_html=True)
-                    
-                    # Use a unique key for each chat input to isolate their state
-                    message_input_key = f"chat_message_input_{chat_partner_name}"
-                    send_button_key = f"send_chat_button_{chat_partner_name}"
+            # Reply functionality (only if current user is the recipient of the main message)
+            if message['recipient_role'] == user_role:
+                st.markdown("---")
+                st.markdown("#### Reply to this Notification")
+                with st.form("reply_notification_form", clear_on_submit=True, key=f"reply_form_{selected_msg_id}"):
+                    reply_message_content = st.text_area("Your Reply", height=100)
+                    send_reply_button = st.form_submit_button("⬆️ Send Reply")
 
-                    # Initialize the text input's state for clearing
-                    if message_input_key not in st.session_state:
-                        st.session_state[message_input_key] = ""
-
-                    message_input = st.text_input(
-                        f"Message {chat_partner_name}", 
-                        value=st.session_state[message_input_key], # Use the session state value
-                        key=message_input_key, 
-                        placeholder="Type your message...", 
-                        label_visibility="collapsed"
-                    )
-                    
-                    if st.button("Send", key=send_button_key):
-                        if message_input:
-                            new_message = {
-                                "role": user_role,
-                                "message": message_input,
+                    if send_reply_button:
+                        if reply_message_content:
+                            reply_id = f"REPLY-{int(datetime.now().timestamp())}-{np.random.randint(1000, 9999)}"
+                            new_reply = {
+                                "notification_id": reply_id,
+                                "sender_role": user_role,
+                                "recipient_role": message['sender_role'], # Reply goes back to the original sender
+                                "subject": f"Re: {message['subject']}", # Subject auto-prefixed with Re:
+                                "message": reply_message_content,
                                 "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                                "chat_partner": chat_partner_name # The recipient of this specific chat
+                                "status": "Sent",
+                                "parent_notification_id": selected_msg_id # Link to the original message
                             }
-                            append_data(CHAT_FILE, pd.DataFrame([new_message]))
-                            
-                            # Update session state DataFrame
-                            new_message_df = pd.DataFrame([new_message])
-                            st.session_state.chat_history_df = pd.concat([st.session_state.chat_history_df, new_message_df], ignore_index=True)
-                            
-                            # To clear the input box and refresh messages immediately
-                            st.session_state[message_input_key] = "" # Clear the input
-                            st.rerun() 
+                            append_data(NOTIFICATIONS_FILE, pd.DataFrame([new_reply]))
+                            st.session_state.notifications_df = load_data(NOTIFICATIONS_FILE, columns=notification_columns) # Refresh dataframe
+
+                            # Update status of the original message to "Replied"
+                            original_msg_idx = st.session_state.notifications_df[
+                                st.session_state.notifications_df['notification_id'] == selected_msg_id
+                            ].index
+                            if not original_msg_idx.empty:
+                                st.session_state.notifications_df.loc[original_msg_idx[0], 'status'] = "Replied"
+                                update_data(NOTIFICATIONS_FILE, st.session_state.notifications_df)
+
+                            st.success("✅ Reply sent!")
+                            st.rerun()
                         else:
-                            st.warning("Please type a message before sending.")
-                    st.markdown('</div>', unsafe_allow_html=True) # End chat-input-area
-                    st.markdown('</div>', unsafe_allow_html=True) # End chat-main
-    st.markdown('</div>', unsafe_allow_html=True) # End chat-container-main
+                            st.error("Please type a reply message.")
+            st.markdown('</div>', unsafe_allow_html=True) # End message-detail-view
+        else:
+            st.warning("Notification not found.")
+            if st.button("Back to Inbox", key="back_to_inbox_not_found"):
+                st.session_state.mailbox_view = "inbox"
+                st.session_state.selected_notification_id = None
+                st.rerun()
+
+    st.markdown('</div>', unsafe_allow_html=True) # End mailbox-container
 
 # --- Footer ---
 st.sidebar.markdown("---")
