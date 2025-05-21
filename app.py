@@ -229,47 +229,140 @@ st.markdown("""
         color: #E0E0E0; /* Light text for code */
     }
 
-    /* Chat messages */
+    /* WhatsApp-like Chat Styling */
+    .chat-container {
+        display: flex;
+        height: 70vh; /* Set a fixed height for the chat area */
+        border: 1px solid #333333;
+        border-radius: 12px;
+        overflow: hidden; /* Ensures child elements stay within bounds */
+        background-color: #1E1E1E;
+    }
+
+    .chat-sidebar {
+        flex: 0 0 300px; /* Fixed width for supplier list */
+        border-right: 1px solid #333333;
+        padding: 15px;
+        background-color: #282828; /* Slightly darker for the list */
+        overflow-y: auto; /* Scrollable if many suppliers */
+    }
+
+    .chat-sidebar h4 {
+        color: #FFFFFF;
+        margin-bottom: 15px;
+    }
+
+    .supplier-list-item {
+        padding: 12px 10px;
+        border-radius: 8px;
+        margin-bottom: 5px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        color: #E0E0E0;
+    }
+
+    .supplier-list-item:hover {
+        background-color: #3A3A3A; /* Hover state for list items */
+    }
+
+    .supplier-list-item.selected {
+        background-color: #003366; /* Zenova blue for selected */
+        color: #FFFFFF;
+        font-weight: bold;
+    }
+
+    .chat-main {
+        flex: 1; /* Takes remaining space */
+        display: flex;
+        flex-direction: column;
+        padding: 15px;
+        background-color: #1E1E1E; /* Same as main card background */
+    }
+
+    .chat-header {
+        border-bottom: 1px solid #333333;
+        padding-bottom: 10px;
+        margin-bottom: 15px;
+        color: #FFFFFF;
+        font-size: 1.3em;
+        font-weight: 600;
+    }
+
+    .chat-messages {
+        flex: 1; /* Takes up space for messages */
+        overflow-y: auto; /* Make messages scrollable */
+        padding-right: 10px; /* For scrollbar space */
+        display: flex;
+        flex-direction: column-reverse; /* Newest messages at bottom */
+    }
+
     .chat-message-container {
         display: flex;
         align-items: flex-start;
         word-break: break-word;
-        padding: 10px 15px;
-        margin-bottom: 10px;
+        padding: 8px 12px;
+        margin-bottom: 8px;
         border-radius: 15px;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-        color: #E0E0E0; /* Light text for chat messages */
+        max-width: 75%; /* Limit message width */
+        box-shadow: 0 1px 2px rgba(0,0,0,0.15); /* Slightly stronger shadow for bubbles */
+        color: #E0E0E0;
     }
     .chat-message-user {
-        background-color: #003366; /* Dark blue for user messages */
+        background-color: #003366; /* Dark blue for current user's messages */
         margin-left: auto;
         margin-right: 0;
-        border-top-right-radius: 2px;
+        border-bottom-right-radius: 2px; /* Pointy corner for user's own message */
     }
     .chat-message-other {
-        background-color: #2D2D2D; /* Slightly lighter dark grey for others */
+        background-color: #3A3A3A; /* Dark grey for other's messages */
         margin-left: 0;
         margin-right: auto;
-        border-top-left-radius: 2px;
+        border-bottom-left-radius: 2px; /* Pointy corner for other's message */
     }
     .chat-avatar {
-        font-size: 1.5em;
-        margin-right: 10px;
+        font-size: 1.2em; /* Slightly smaller avatar */
+        margin-right: 8px;
     }
     .chat-role {
-        color: #90CAF9; /* Lighter blue for role */
-        font-weight: strong;
+        color: #90CAF9; /* Lighter blue for role in chat bubble */
+        font-weight: bold;
+        font-size: 0.9em;
     }
     .chat-timestamp {
-        color: #A0A0A0; /* Lighter grey for timestamp */
-        font-size: 0.8em;
+        color: #A0A0A0; /* Lighter grey for timestamp in chat bubble */
+        font-size: 0.7em;
+        margin-left: 8px;
     }
+    .chat-text {
+        font-size: 0.95em;
+        line-height: 1.4;
+    }
+
+    .chat-input-area {
+        padding-top: 15px;
+        border-top: 1px solid #333333;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+    }
+    .chat-input-area .stTextInput > div > div > input {
+        background-color: #2D2D2D; /* Darker input background */
+        color: #E0E0E0; /* Light text in input */
+        border: 1px solid #555555;
+        border-radius: 8px;
+        padding: 10px;
+    }
+    .chat-input-area .stButton > button {
+        padding: 0.75rem 1.25rem; /* Adjust button size */
+    }
+
 </style>
 """, unsafe_allow_html=True)
 
 
 # --- File Paths & Directory Setup ---
 DATA_DIR = "data"
+# Updated CHAT_FILE columns to include 'chat_partner'
 CHAT_FILE = os.path.join(DATA_DIR, "chat_history.csv")
 FILES_FILE = os.path.join(DATA_DIR, "uploaded_files.csv")
 PROJECTS_FILE = os.path.join(DATA_DIR, "project_tasks.csv")
@@ -320,7 +413,8 @@ def append_data(file_path, new_entry_df):
     df.to_csv(file_path, index=False)
 
 # --- Initialize CSV Files ---
-initialize_csv(CHAT_FILE, ["role", "message", "timestamp"])
+# IMPORTANT: Updated CHAT_FILE columns to include 'chat_partner'
+initialize_csv(CHAT_FILE, ["role", "message", "timestamp", "chat_partner"])
 initialize_csv(FILES_FILE, ["filename", "type", "size", "uploader", "timestamp", "path"])
 initialize_csv(PROJECTS_FILE, ["task_id", "task_name", "status", "assigned_to", "due_date", "description", "input_pending"])
 initialize_csv(ASSETS_FILE, ["asset_id", "asset_name", "location", "status", "eol_date", "calibration_date", "notes", "supplier"])
@@ -365,9 +459,16 @@ tabs = st.tabs(tab_titles)
 
 
 # --- Initialize Streamlit Session State (Global Scope) ---
-chat_df = load_data(CHAT_FILE, columns=["role", "message", "timestamp"])
-if "chat_history" not in st.session_state:
-    st.session_state.chat_history = chat_df.to_dict(orient="records")
+# Ensure 'chat_partner' is in the loaded chat_df
+chat_df_initial = load_data(CHAT_FILE, columns=["role", "message", "timestamp", "chat_partner"])
+if "chat_history_df" not in st.session_state:
+    st.session_state.chat_history_df = chat_df_initial
+
+if "selected_chat_partner" not in st.session_state:
+    st.session_state.selected_chat_partner = None # For OEM to select a supplier
+    # For Suppliers, pre-select OEM
+    if user_role.startswith("Supplier") or user_role == "Auditor":
+        st.session_state.selected_chat_partner = "OEM"
 
 
 # --- Main Application Content based on Tab Selection ---
@@ -983,35 +1084,110 @@ with tabs[6]: # Corresponding to "💬 Chat"
     st.subheader("Inter-Company Communication Channel")
     st.markdown("Engage in real-time, secured communication with your suppliers and internal teams. Facilitate quick queries and collaborative discussions.")
 
-    with st.container():
-        st.subheader("Chat History")
-        for msg_data in st.session_state.chat_history:
-            role = str(msg_data.get("role", "Unknown"))
-            message_content = str(msg_data.get("message", ""))
-            timestamp = str(msg_data.get("timestamp", ""))
+    # Main chat container with two columns
+    chat_col_left, chat_col_right = st.columns([0.3, 0.7])
 
-            # Determine if the message is from the current user for styling
-            is_user_message = (role == user_role)
-            
-            # Custom message display with CSS classes
-            st.markdown(f"""
-            <div class="chat-message-container {'chat-message-user' if is_user_message else 'chat-message-other'}" style="max-width: 70%;">
-                <span class="chat-avatar">{"🧑‍💻" if is_user_message else "🏢" if role in ["OEM", "Auditor"] else "👤"}</span>
-                <div>
-                    <strong class="chat-role">{role}</strong> <small class="chat-timestamp">({timestamp})</small><br>
-                    {message_content}
+    with chat_col_left:
+        st.markdown("#### Conversations")
+        
+        # Get all unique chat participants excluding the current user role
+        all_chat_partners = []
+        if user_role == "OEM":
+            # OEM can chat with all suppliers and Auditor
+            supplier_df = load_data(SUPPLIER_DUMMY_DATA_FILE, columns=["supplier_name"])
+            all_chat_partners.extend(supplier_df['supplier_name'].tolist())
+            all_chat_partners.append("Auditor")
+            # Remove duplicates and sort
+            all_chat_partners = sorted(list(set(all_chat_partners)))
+        elif user_role.startswith("Supplier") or user_role == "Auditor":
+            # Suppliers/Auditors can only chat with OEM
+            all_chat_partners = ["OEM"]
+        
+        # Filter chat partners based on search input if OEM
+        search_query = ""
+        if user_role == "OEM":
+            search_query = st.text_input("Search Supplier", key="supplier_search_chat", placeholder="Type supplier name...")
+            if search_query:
+                all_chat_partners = [p for p in all_chat_partners if search_query.lower() in p.lower()]
+        
+        if not all_chat_partners:
+            st.info("No available chat partners.")
+        else:
+            # Display chat partners as selectable list items
+            st.markdown('<div class="chat-sidebar">', unsafe_allow_html=True) # Apply CSS class for sidebar
+            for partner in all_chat_partners:
+                # Use a unique key for each button to prevent Streamlit issues
+                is_selected = st.session_state.selected_chat_partner == partner
+                selected_class = " selected" if is_selected else ""
+                
+                # Using st.button for click behavior, styled with markdown/css
+                if st.button(
+                    f"**{partner}**",
+                    key=f"chat_partner_select_{partner}",
+                    use_container_width=True
+                ):
+                    st.session_state.selected_chat_partner = partner
+                    st.rerun()
+            st.markdown('</div>', unsafe_allow_html=True)
+
+
+    with chat_col_right:
+        if st.session_state.selected_chat_partner:
+            chat_partner_name = st.session_state.selected_chat_partner
+            st.markdown(f'<div class="chat-main">', unsafe_allow_html=True)
+            st.markdown(f'<div class="chat-header">Chat with {chat_partner_name}</div>', unsafe_allow_html=True)
+
+            # Filter messages for the selected chat partner
+            filtered_messages_df = st.session_state.chat_history_df[
+                ((st.session_state.chat_history_df['role'] == user_role) &
+                 (st.session_state.chat_history_df['chat_partner'] == chat_partner_name)) |
+                ((st.session_state.chat_history_df['role'] == chat_partner_name) &
+                 (st.session_state.chat_history_df['chat_partner'] == user_role))
+            ]
+
+            # Display chat messages in reverse order (newest at bottom)
+            st.markdown('<div class="chat-messages">', unsafe_allow_html=True)
+            for _, msg_data in filtered_messages_df.sort_values(by="timestamp", ascending=False).iterrows():
+                role = str(msg_data.get("role", "Unknown"))
+                message_content = str(msg_data.get("message", ""))
+                timestamp = str(msg_data.get("timestamp", ""))
+
+                is_user_message = (role == user_role)
+                
+                st.markdown(f"""
+                <div class="chat-message-container {'chat-message-user' if is_user_message else 'chat-message-other'}">
+                    <span class="chat-avatar">{"🧑‍💻" if is_user_message else "🏢" if role in ["OEM", "Auditor"] else "👤"}</span>
+                    <div>
+                        <strong class="chat-role">{role}</strong> <small class="chat-timestamp">({timestamp})</small><br>
+                        <div class="chat-text">{message_content}</div>
+                    </div>
                 </div>
-            </div>
-            """, unsafe_allow_html=True)
+                """, unsafe_allow_html=True)
+            st.markdown('</div>', unsafe_allow_html=True) # End chat-messages
 
-    st.markdown("---")
-    st.subheader("Send New Message")
-    prompt = st.chat_input("Type your message here...", key="chat_input_box")
-    if prompt:
-        new_message = {"role": user_role, "message": prompt, "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
-        append_data(CHAT_FILE, pd.DataFrame([new_message]))
-        st.session_state.chat_history.append(new_message)
-        st.rerun()
+            st.markdown('<div class="chat-input-area">', unsafe_allow_html=True)
+            message_input = st.text_input(f"Message {chat_partner_name}", key="chat_message_input", placeholder="Type your message...", label_visibility="collapsed")
+            if st.button("Send", key="send_chat_button"):
+                if message_input and st.session_state.selected_chat_partner:
+                    new_message = {
+                        "role": user_role,
+                        "message": message_input,
+                        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                        "chat_partner": chat_partner_name # The recipient
+                    }
+                    append_data(CHAT_FILE, pd.DataFrame([new_message]))
+                    
+                    # Update session state DataFrame
+                    new_message_df = pd.DataFrame([new_message])
+                    st.session_state.chat_history_df = pd.concat([st.session_state.chat_history_df, new_message_df], ignore_index=True)
+                    
+                    st.rerun() # Rerun to clear input and show new message
+            st.markdown('</div>', unsafe_allow_html=True) # End chat-input-area
+            st.markdown('</div>', unsafe_allow_html=True) # End chat-main
+
+        else:
+            st.info("Select a conversation from the left sidebar to start chatting.")
+            st.warning("Note: Suppliers and Auditors can only chat with 'OEM'.")
 
 # --- Footer ---
 st.sidebar.markdown("---")
