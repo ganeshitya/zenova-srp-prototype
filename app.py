@@ -8,19 +8,22 @@ import numpy as np
 # --- App Configuration ---
 st.set_page_config(page_title="Zenova SRP", layout="wide", initial_sidebar_state="expanded")
 
-# --- Custom CSS for Professional Look (Google-inspired) ---
+# --- Custom CSS for Professional Look (Google-inspired with horizontal tabs) ---
 st.markdown("""
 <style>
+    /* Import Google Fonts - Roboto for general text, possibly a display font if desired */
+    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+
     /* General Body and Text Styling */
     body {
-        font-family: 'Roboto', 'Helvetica Neue', 'Arial', sans-serif;
+        font-family: 'Roboto', sans-serif;
         color: #333333; /* Darker text for readability */
         background-color: #F0F2F6; /* Very light grey background */
     }
 
     /* Streamlit Main Container Padding */
     .main .block-container {
-        padding-top: 2rem;
+        padding-top: 1rem; /* Reduced top padding for header */
         padding-right: 3rem;
         padding-left: 3rem;
         padding-bottom: 2rem;
@@ -31,29 +34,6 @@ st.markdown("""
         background-color: #FFFFFF; /* White sidebar background */
         border-right: 1px solid #EEEEEE; /* Subtle border */
         padding-top: 1rem;
-    }
-    .stSidebar .stRadio > label {
-        font-size: 1.1em; /* Slightly larger font for nav items */
-        padding: 0.5rem 1rem; /* Padding around nav items */
-        margin-bottom: 0.25rem; /* Space between nav items */
-        border-radius: 8px; /* Rounded corners for buttons */
-        transition: background-color 0.2s, color 0.2s; /* Smooth transition */
-    }
-    .stSidebar .stRadio > label:hover {
-        background-color: #E6F7FF; /* Light blue on hover */
-        color: #1890FF; /* Darker blue text on hover */
-    }
-    .stSidebar .stRadio > label[data-baseweb="radio"] > div:first-child {
-        background-color: #1890FF !important; /* Active radio button fill */
-        border-color: #1890FF !important; /* Active radio button border */
-    }
-    .stSidebar .stRadio > label[data-baseweb="radio"] {
-        color: #333333; /* Default text color */
-    }
-    .stSidebar .stRadio > label[data-baseweb="radio"][aria-checked="true"] {
-        background-color: #E6F7FF; /* Light blue for active item */
-        color: #1890FF; /* Primary blue for active text */
-        font-weight: 600; /* Bold for active text */
     }
     .stSidebar .stSelectbox > label {
         font-weight: 600;
@@ -72,8 +52,48 @@ st.markdown("""
         margin-bottom: 1rem;
     }
 
+    /* Top Horizontal Tabs Styling */
+    [data-testid="stTabs"] {
+        background-color: #FFFFFF; /* White background for the tab bar */
+        border-bottom: 1px solid #E0E0E0; /* Subtle line below tabs */
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+        padding-left: 1rem; /* Adjust padding if needed */
+        margin-bottom: 1.5rem; /* Space between tabs and content */
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08); /* Subtle shadow for depth */
+        border-radius: 0 0 12px 12px; /* Rounded bottom corners for the header area */
+        overflow: hidden; /* Ensures shadow applies nicely */
+    }
+
+    [data-testid="stTab"] {
+        font-weight: 500; /* Slightly bolder font for tabs */
+        font-size: 1.05em; /* Slightly larger font */
+        padding: 0.75rem 1.25rem; /* More generous padding for tabs */
+        margin: 0 0.25rem; /* Space between tabs */
+        border-radius: 8px; /* Rounded corners for individual tabs */
+        transition: background-color 0.2s, color 0.2s, box-shadow 0.2s; /* Smooth transitions */
+        color: #555555; /* Default tab text color */
+    }
+
+    [data-testid="stTab"]:hover {
+        background-color: #F0F2F6; /* Lighter grey on hover */
+        color: #333333; /* Darker text on hover */
+        box-shadow: 0 1px 4px rgba(0,0,0,0.1); /* Slight lift on hover */
+    }
+
+    [data-testid="stTab"][aria-selected="true"] {
+        background-color: #E6F7FF; /* Light blue for active tab */
+        color: #1890FF; /* Primary blue for active tab text */
+        font-weight: 600; /* Bold for active tab */
+        box-shadow: 0 1px 4px rgba(0,0,0,0.1); /* Slight shadow for active tab */
+        border-bottom: 3px solid #1890FF; /* Strong blue underline for active tab */
+        border-radius: 8px 8px 0 0; /* Only top corners rounded for active tab */
+        margin-bottom: -3px; /* Pull active tab slightly over the bottom border */
+    }
+
     /* Headers and Subheaders */
     h1, h2, h3, h4, h5, h6 {
+        font-family: 'Roboto', sans-serif;
         color: #333333;
         font-weight: 600;
         margin-bottom: 0.75rem; /* Consistent spacing */
@@ -124,7 +144,7 @@ st.markdown("""
     }
 
     /* Form Elements */
-    .stTextInput > label, .stSelectbox > label, .stDateInput > label, .stNumberInput > label, .stSlider > label, .stTextArea > label {
+    .stTextInput > label, .stSelectbox > label, .stDateInput > label, .stNumberInput > label, .stSlider > label, .stTextArea > label, .stCheckbox > label {
         font-weight: 600;
         color: #555555;
         margin-bottom: 0.5rem;
@@ -201,6 +221,41 @@ st.markdown("""
         border-radius: 8px;
         padding: 1rem;
         margin-bottom: 1rem;
+    }
+
+    /* Chat messages */
+    .chat-message-container {
+        display: flex;
+        align-items: flex-start;
+        word-break: break-word;
+        padding: 10px 15px;
+        margin-bottom: 10px;
+        border-radius: 15px;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+    .chat-message-user {
+        background-color: #E6F7FF; /* Light blue for user */
+        margin-left: auto;
+        margin-right: 0;
+        border-top-right-radius: 2px; /* Pointy corner for user's own message */
+    }
+    .chat-message-other {
+        background-color: #F8F9FA; /* Light grey for others */
+        margin-left: 0;
+        margin-right: auto;
+        border-top-left-radius: 2px; /* Pointy corner for other's message */
+    }
+    .chat-avatar {
+        font-size: 1.5em;
+        margin-right: 10px;
+    }
+    .chat-role {
+        color: #1890FF;
+        font-weight: strong;
+    }
+    .chat-timestamp {
+        color: #888;
+        font-size: 0.8em;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -284,8 +339,11 @@ st.sidebar.markdown("---")
 st.sidebar.markdown(f"**Zenova SRP** - Your #1 Partner for Strategic Supplier Resource Planning.")
 st.sidebar.markdown("---")
 
-# --- Sidebar Navigation ---
-page_titles = [
+
+# --- Main Application Header & Horizontal Tabs ---
+st.header("Zenova SRP Portal") # Main application title at the top
+
+tab_titles = [
     "📊 OEM Dashboard",
     "👥 Supplier Records",
     "🛠️ Asset Management",
@@ -295,8 +353,8 @@ page_titles = [
     "💬 Chat"
 ]
 
-selected_page = st.sidebar.radio("Navigate", page_titles, key="main_navigation_radio")
-st.sidebar.markdown("---")
+# Create horizontal tabs
+tabs = st.tabs(tab_titles)
 
 
 # --- Initialize Streamlit Session State (Global Scope) ---
@@ -305,11 +363,11 @@ if "chat_history" not in st.session_state:
     st.session_state.chat_history = chat_df.to_dict(orient="records")
 
 
-# --- Main Application Content based on Sidebar Selection ---
+# --- Main Application Content based on Tab Selection ---
 
 # --- OEM Dashboard Module ---
-if selected_page == "📊 OEM Dashboard":
-    st.header("📊 OEM Performance Dashboard")
+with tabs[0]: # Corresponding to "📊 OEM Dashboard"
+    st.subheader("OEM Performance Dashboard")
     st.markdown("A comprehensive overview of key performance indicators across your supplier network and internal operations.")
 
     if user_role != "OEM":
@@ -585,8 +643,8 @@ if selected_page == "📊 OEM Dashboard":
 
 
 # --- Supplier Records Module ---
-elif selected_page == "👥 Supplier Records":
-    st.header("👥 Supplier Records")
+with tabs[1]: # Corresponding to "👥 Supplier Records"
+    st.subheader("Supplier Records")
     st.markdown("View and manage detailed information about your valued suppliers. This comprehensive database enables efficient supplier relationship management.")
 
     supplier_df = load_data(SUPPLIER_DUMMY_DATA_FILE, columns=supplier_columns)
@@ -670,8 +728,8 @@ elif selected_page == "👥 Supplier Records":
                     st.error("❗ Supplier ID and Supplier Name are required fields.")
 
 # --- Asset Management Module ---
-elif selected_page == "🛠️ Asset Management":
-    st.header("🛠️ Inter-Company Asset Management")
+with tabs[2]: # Corresponding to "🛠️ Asset Management"
+    st.subheader("Inter-Company Asset Management")
     st.markdown("Track and manage all critical assets across your OEM and supplier facilities, ensuring proper utilization and maintenance.")
 
     # Load supplier data for the dropdown
@@ -732,8 +790,8 @@ elif selected_page == "🛠️ Asset Management":
 
 
 # --- Project Management Module (Gantt) ---
-elif selected_page == "📅 Project Management":
-    st.header("📅 Project Management Tool")
+with tabs[3]: # Corresponding to "📅 Project Management"
+    st.subheader("Project Management Tool")
     st.markdown("Streamline and track all collaborative projects and tasks with your suppliers. Monitor progress, deadlines, and critical path items.")
 
     with st.container():
@@ -783,8 +841,8 @@ elif selected_page == "📅 Project Management":
 
 
 # --- Audit Management Module ---
-elif selected_page == "📋 Audit Management":
-    st.header("📋 Supplier Assessment & Actions Tracking")
+with tabs[4]: # Corresponding to "📋 Audit Management"
+    st.subheader("Supplier Assessment & Actions Tracking")
     st.markdown("Efficiently manage supplier audit findings, track corrective actions, and maintain a robust assessment history.")
 
     with st.container():
@@ -833,8 +891,8 @@ elif selected_page == "📋 Audit Management":
 
 
 # --- File Management Module ---
-elif selected_page == "📁 File Management":
-    st.header("📁 Secured File Management & Version Control")
+with tabs[5]: # Corresponding to "📁 File Management"
+    st.subheader("Secured File Management & Version Control")
     st.markdown("Securely upload, store, and manage all critical documents with your suppliers. Ensure data integrity and controlled access.")
 
     with st.container():
@@ -904,8 +962,8 @@ elif selected_page == "📁 File Management":
             st.info("No files uploaded yet. Use the section above to upload your documents.")
 
 # --- Chat Module ---
-elif selected_page == "💬 Chat":
-    st.header("💬 Inter-Company Communication Channel")
+with tabs[6]: # Corresponding to "💬 Chat"
+    st.subheader("Inter-Company Communication Channel")
     st.markdown("Engage in real-time, secured communication with your suppliers and internal teams. Facilitate quick queries and collaborative discussions.")
 
     with st.container():
@@ -915,28 +973,15 @@ elif selected_page == "💬 Chat":
             message_content = str(msg_data.get("message", ""))
             timestamp = str(msg_data.get("timestamp", ""))
 
-            # Use different avatars and colors based on role
-            avatar_icon = "🧑‍💻" if role == user_role else "🏢" if role in ["OEM", "Auditor"] else "👤" # Default for other suppliers
+            # Determine if the message is from the current user for styling
+            is_user_message = (role == user_role)
             
-            # Custom message display for a cleaner look
+            # Custom message display with CSS classes
             st.markdown(f"""
-            <div style="
-                background-color: {'#E6F7FF' if role == user_role else '#F8F9FA'};
-                border-radius: 15px;
-                padding: 10px 15px;
-                margin-bottom: 10px;
-                box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-                display: flex;
-                align-items: flex-start;
-                word-break: break-word;
-                margin-left: {'auto' if role == user_role else '0'};
-                margin-right: {'0' if role == user_role else 'auto'};
-                max-width: 70%;
-                {"border-top-right-radius: 2px;" if role == user_role else "border-top-left-radius: 2px;"}
-            ">
-                <span style="font-size: 1.5em; margin-right: 10px;">{avatar_icon}</span>
+            <div class="chat-message-container {'chat-message-user' if is_user_message else 'chat-message-other'}" style="max-width: 70%;">
+                <span class="chat-avatar">{"🧑‍💻" if is_user_message else "🏢" if role in ["OEM", "Auditor"] else "👤"}</span>
                 <div>
-                    <strong style="color: #1890FF;">{role}</strong> <small style="color: #888; font-size: 0.8em;">({timestamp})</small><br>
+                    <strong class="chat-role">{role}</strong> <small class="chat-timestamp">({timestamp})</small><br>
                     {message_content}
                 </div>
             </div>
