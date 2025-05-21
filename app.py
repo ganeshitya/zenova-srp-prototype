@@ -3,7 +3,7 @@ import pandas as pd
 import os
 from datetime import datetime, timedelta
 import plotly.express as px
-import numpy as np # For random choices in dummy data
+import numpy as np
 
 # --- App Configuration ---
 st.set_page_config(page_title="Zenova SRP", layout="wide", initial_sidebar_state="expanded")
@@ -16,7 +16,7 @@ PROJECTS_FILE = os.path.join(DATA_DIR, "project_tasks.csv")
 ASSETS_FILE = os.path.join(DATA_DIR, "assets.csv")
 AUDITS_FILE = os.path.join(DATA_DIR, "audit_points.csv")
 SUPPLIER_RECORDS_DIR = os.path.join(DATA_DIR, "supplier_records")
-SUPPLIER_DUMMY_DATA_FILE = os.path.join(DATA_DIR, "supplier_dummy_data.csv") # New: Supplier Dummy Data File
+SUPPLIER_DUMMY_DATA_FILE = os.path.join(DATA_DIR, "supplier_dummy_data.csv")
 
 os.makedirs(DATA_DIR, exist_ok=True)
 os.makedirs(SUPPLIER_RECORDS_DIR, exist_ok=True)
@@ -29,7 +29,7 @@ def initialize_csv(file_path, columns):
 def create_dummy_data(file_path, columns, data_type, user_roles):
     """Generates dummy data if the CSV is empty."""
     if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
-        return # File already has data
+        return
 
     st.info(f"Creating dummy data for {os.path.basename(file_path)}...")
 
@@ -97,29 +97,35 @@ def create_dummy_data(file_path, columns, data_type, user_roles):
             })
     elif data_type == "files":
         dummy_entries = [
-            {"filename": "Zenova_NDA_SupplierA.pdf", "type": "application/pdf", "size": 120000, "uploader": "OEM", "timestamp": (datetime.now() - timedelta(days=20)).strftime("%Y-%m-%d %H:%M:%S"), "path_relative": os.path.join("supplier_records", "Zenova_NDA_SupplierA.pdf")},
-            {"filename": "SupplierB_MSA_v2.docx", "type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "size": 85000, "uploader": "Supplier B", "timestamp": (datetime.now() - timedelta(days=18)).strftime("%Y-%m-%d %H:%M:%S"), "path_relative": os.path.join("supplier_records", "SupplierB_MSA_v2.docx")},
-            {"filename": "Q1_Audit_Summary_Report.xlsx", "type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "size": 250000, "uploader": "Auditor", "timestamp": (datetime.now() - timedelta(days=15)).strftime("%Y-%m-%d %H:%M:%S"), "path_relative": "Q1_Audit_Summary_Report.xlsx"},
-            {"filename": "Project_Alpha_Requirements.pdf", "type": "application/pdf", "size": 150000, "uploader": "OEM", "timestamp": (datetime.now() - timedelta(days=10)).strftime("%Y-%m-%d %H:%M:%S"), "path_relative": "Project_Alpha_Requirements.pdf"},
-            {"filename": "Asset_Calibration_Schedule.xlsx", "type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "size": 90000, "uploader": "OEM", "timestamp": (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d %H:%M:%S"), "path_relative": "Asset_Calibration_Schedule.xlsx"},
+            # NDA/MSA documents directly in supplier_records
+            {"filename": "Zenova_NDA_SupplierA.pdf", "type": "application/pdf", "size": 120000, "uploader": "OEM", "timestamp": (datetime.now() - timedelta(days=20)).strftime("%Y-%m-%d %H:%M:%S"), "target_dir": SUPPLIER_RECORDS_DIR},
+            {"filename": "SupplierB_MSA_v2.docx", "type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "size": 85000, "uploader": "Supplier B", "timestamp": (datetime.now() - timedelta(days=18)).strftime("%Y-%m-%d %H:%M:%S"), "target_dir": SUPPLIER_RECORDS_DIR},
+            # General files in DATA_DIR
+            {"filename": "Q1_Audit_Summary_Report.xlsx", "type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "size": 250000, "uploader": "Auditor", "timestamp": (datetime.now() - timedelta(days=15)).strftime("%Y-%m-%d %H:%M:%S"), "target_dir": DATA_DIR},
+            {"filename": "Project_Alpha_Requirements.pdf", "type": "application/pdf", "size": 150000, "uploader": "OEM", "timestamp": (datetime.now() - timedelta(days=10)).strftime("%Y-%m-%d %H:%M:%S"), "target_dir": DATA_DIR},
+            {"filename": "Asset_Calibration_Schedule.xlsx", "type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "size": 90000, "uploader": "OEM", "timestamp": (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d %H:%M:%S"), "target_dir": DATA_DIR},
         ]
-        # Create dummy files for demonstration
+        
+        final_entries = []
         for entry in dummy_entries:
-            # Determine the absolute path for file creation
-            if "supplier_records" in entry["path_relative"]:
-                dummy_file_path = os.path.join(DATA_DIR, entry["path_relative"])
-            else:
-                dummy_file_path = os.path.join(DATA_DIR, entry["path_relative"])
+            file_name = entry["filename"]
+            target_dir = entry["target_dir"]
+            dummy_file_path = os.path.join(target_dir, file_name)
 
             os.makedirs(os.path.dirname(dummy_file_path), exist_ok=True)
             if not os.path.exists(dummy_file_path):
                 with open(dummy_file_path, 'w') as f:
-                    f.write(f"This is a dummy file for {entry['filename']}.")
-                st.info(f"Created dummy file: {entry['filename']}")
-            entry['path'] = dummy_file_path
-            del entry['path_relative']
+                    f.write(f"This is a dummy file for {file_name}.")
+                st.info(f"Created dummy file: {file_name}")
+            
+            # Create a new dictionary for the DataFrame to avoid modifying the loop variable directly
+            df_entry = entry.copy()
+            df_entry['path'] = dummy_file_path # Store the absolute path
+            del df_entry['target_dir'] # Remove the temporary 'target_dir'
+            final_entries.append(df_entry)
+        dummy_entries = final_entries # Assign the cleaned entries to dummy_entries
 
-    elif data_type == "supplier_data": # New: Dummy data for supplier records
+    elif data_type == "supplier_data":
         dummy_entries = []
         supplier_names = ["Global Parts Inc.", "Tech Solutions Ltd.", "Precision Manufacturing Co.", "Innovate Components", "Reliable Assemblies"]
         agreement_statuses = ["Active", "Pending Renewal", "Terminated", "On Hold"]
@@ -129,14 +135,14 @@ def create_dummy_data(file_path, columns, data_type, user_roles):
                 "supplier_id": supplier_id,
                 "supplier_name": name,
                 "contact_person": np.random.choice(["Alice Smith", "Bob Johnson", "Charlie Brown", "Diana Prince"]),
-                "email": f"{name.lower().replace(' ', '')}@example.com",
+                "email": f"{name.lower().replace(' ', '').replace('.', '')}@example.com", # More robust email
                 "phone": f"+1-555-{np.random.randint(100, 999)}-{np.random.randint(1000, 9999)}",
                 "agreement_status": np.random.choice(agreement_statuses),
                 "last_audit_score": np.random.randint(70, 99),
                 "notes": f"General notes for {name}."
             })
     else:
-        dummy_entries = [] # Fallback for unknown data_type
+        dummy_entries = []
 
     if dummy_entries:
         pd.DataFrame(dummy_entries, columns=columns).to_csv(file_path, index=False)
@@ -181,7 +187,7 @@ initialize_csv(FILES_FILE, ["filename", "type", "size", "uploader", "timestamp",
 initialize_csv(PROJECTS_FILE, ["task_id", "task_name", "status", "assigned_to", "due_date", "description", "input_pending"])
 initialize_csv(ASSETS_FILE, ["asset_id", "asset_name", "location", "status", "eol_date", "calibration_date", "notes", "supplier"])
 initialize_csv(AUDITS_FILE, ["audit_id", "point_description", "status", "assignee", "due_date", "resolution", "input_pending"])
-initialize_csv(SUPPLIER_DUMMY_DATA_FILE, ["supplier_id", "supplier_name", "contact_person", "email", "phone", "agreement_status", "last_audit_score", "notes"]) # New: Init supplier data
+initialize_csv(SUPPLIER_DUMMY_DATA_FILE, ["supplier_id", "supplier_name", "contact_person", "email", "phone", "agreement_status", "last_audit_score", "notes"])
 
 # Load dummy data into CSVs if they are empty
 load_data(CHAT_FILE, columns=["role", "message", "timestamp"], data_type="chat", user_roles=user_roles_list)
@@ -189,7 +195,7 @@ load_data(FILES_FILE, columns=["filename", "type", "size", "uploader", "timestam
 load_data(PROJECTS_FILE, columns=["task_id", "task_name", "status", "assigned_to", "due_date", "description", "input_pending"], data_type="project", user_roles=user_roles_list)
 load_data(ASSETS_FILE, columns=["asset_id", "asset_name", "location", "status", "eol_date", "calibration_date", "notes", "supplier"], data_type="asset", user_roles=user_roles_list)
 load_data(AUDITS_FILE, columns=["audit_id", "point_description", "status", "assignee", "due_date", "resolution", "input_pending"], data_type="audit", user_roles=user_roles_list)
-load_data(SUPPLIER_DUMMY_DATA_FILE, columns=["supplier_id", "supplier_name", "contact_person", "email", "phone", "agreement_status", "last_audit_score", "notes"], data_type="supplier_data", user_roles=user_roles_list) # New: Load supplier data
+load_data(SUPPLIER_DUMMY_DATA_FILE, columns=["supplier_id", "supplier_name", "contact_person", "email", "phone", "agreement_status", "last_audit_score", "notes"], data_type="supplier_data", user_roles=user_roles_list)
 
 
 # --- Sidebar Login ---
@@ -215,7 +221,7 @@ tab_titles = [
     "📅 Project Management",
     "🛠️ Asset Management",
     "📋 Audit Management",
-    "👥 Supplier Records" # New: Supplier Records Tab
+    "👥 Supplier Records"
 ]
 tabs = st.tabs(tab_titles)
 
@@ -362,8 +368,19 @@ with tabs[2]:
 
     if uploaded_file:
         save_path = os.path.join(selected_upload_folder_path, uploaded_file.name)
-        with open(save_path, "wb") as f:
-            f.write(uploaded_file.getbuffer())
+        
+        # --- DEBUGGING PRINT STATEMENTS ---
+        st.sidebar.write(f"DEBUG: selected_upload_folder_path type: {type(selected_upload_folder_path)}, value: {selected_upload_folder_path}")
+        st.sidebar.write(f"DEBUG: uploaded_file.name type: {type(uploaded_file.name)}, value: {uploaded_file.name}")
+        st.sidebar.write(f"DEBUG: save_path constructed type: {type(save_path)}, value: {save_path}")
+        # --- END DEBUGGING ---
+
+        try:
+            with open(save_path, "wb") as f:
+                f.write(uploaded_file.getbuffer())
+        except TypeError as e:
+            st.error(f"Error saving file: {e}. 'save_path' might not be a valid string. Check console for DEBUG messages.")
+            st.stop() # Stop execution to prevent further errors if file saving fails
 
         file_details = {
             "filename": uploaded_file.name,
@@ -387,6 +404,7 @@ with tabs[2]:
     st.subheader("Uploaded Files History")
     files_df = load_data(FILES_FILE, columns=["filename", "type", "size", "uploader", "timestamp", "path"])
     if not files_df.empty:
+        # Ensure 'path' column exists and is string type and handle NaNs
         files_df['path'] = files_df['path'].fillna('').astype(str)
         display_df = files_df.drop(columns=['path'])
         st.dataframe(display_df, use_container_width=True)
@@ -396,6 +414,12 @@ with tabs[2]:
         if selected_file_name_to_download:
             file_to_download_path_series = files_df[files_df['filename'] == selected_file_name_to_download]['path']
             file_to_download_path = file_to_download_path_series.iloc[0] if not file_to_download_path_series.empty else ''
+
+            # --- CRITICAL VALIDATION ---
+            if not isinstance(file_to_download_path, str):
+                st.error(f"Internal error: Download path is not a string. Type: {type(file_to_download_path)}, Value: {file_to_download_path}")
+                file_to_download_path = '' # Reset to empty to prevent further errors
+            # --- END CRITICAL VALIDATION ---
 
             if file_to_download_path and os.path.exists(file_to_download_path):
                 with open(file_to_download_path, "rb") as file:
@@ -536,8 +560,8 @@ with tabs[5]:
     else:
         st.info("No audit points recorded yet.")
 
-# --- Supplier Records Module (NEW) ---
-with tabs[6]: # Updated tab index
+# --- Supplier Records Module ---
+with tabs[6]:
     st.subheader("👥 Supplier Records")
     st.markdown("View and manage detailed information about your suppliers.")
 
