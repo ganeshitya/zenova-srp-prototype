@@ -959,3 +959,47 @@ with tabs[5]: # Corresponding to "📁 File Management"
                             mime=files_df[files_df['filename'] == selected_file_name_to_download]['type'].iloc[0],
                             key=f"download_btn_{selected_file_name_to_download}"
                         )
+                else:
+                    st.warning(f"❗ File '{selected_file_name_to_download}' not found at path: {file_to_download_path}. It might be a dummy entry without a physical file, or the path is incorrect.")
+        else:
+            st.info("No files uploaded yet. Use the section above to upload your documents.")
+
+# --- Chat Module ---
+with tabs[6]: # Corresponding to "💬 Chat"
+    st.subheader("Inter-Company Communication Channel")
+    st.markdown("Engage in real-time, secured communication with your suppliers and internal teams. Facilitate quick queries and collaborative discussions.")
+
+    with st.container():
+        st.subheader("Chat History")
+        for msg_data in st.session_state.chat_history:
+            role = str(msg_data.get("role", "Unknown"))
+            message_content = str(msg_data.get("message", ""))
+            timestamp = str(msg_data.get("timestamp", ""))
+
+            # Determine if the message is from the current user for styling
+            is_user_message = (role == user_role)
+            
+            # Custom message display with CSS classes
+            st.markdown(f"""
+            <div class="chat-message-container {'chat-message-user' if is_user_message else 'chat-message-other'}" style="max-width: 70%;">
+                <span class="chat-avatar">{"🧑‍💻" if is_user_message else "🏢" if role in ["OEM", "Auditor"] else "👤"}</span>
+                <div>
+                    <strong class="chat-role">{role}</strong> <small class="chat-timestamp">({timestamp})</small><br>
+                    {message_content}
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+    st.markdown("---")
+    st.subheader("Send New Message")
+    prompt = st.chat_input("Type your message here...", key="chat_input_box")
+    if prompt:
+        new_message = {"role": user_role, "message": prompt, "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+        append_data(CHAT_FILE, pd.DataFrame([new_message]))
+        st.session_state.chat_history.append(new_message)
+        st.rerun()
+
+# --- Footer ---
+st.sidebar.markdown("---")
+st.sidebar.markdown(f"© {datetime.now().year} Zenova SRP. All rights reserved.")
+st.sidebar.markdown("Powered by Streamlit")
