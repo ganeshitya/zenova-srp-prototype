@@ -50,7 +50,7 @@ with tabs[0]:
         if message.strip():
             append_message(user_role, message)
             st.session_state["just_sent"] = True
-    st.experimental_set_query_params(refresh=True)
+    st.query_params(refresh=True)
 
 
 with tabs[1]:
