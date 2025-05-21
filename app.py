@@ -57,7 +57,7 @@ st.markdown("""
 
     /* Top Horizontal Tabs Styling */
     [data-testid="stTabs"] {
-        background-color: #1E1E1E; /* Darker grey background for the tab bar */
+        background-color: #282828; /* Dark grey background for the tab bar */
         border-bottom: 1px solid #333333; /* Subtle line below tabs */
         padding-top: 0.5rem;
         padding-bottom: 0.5rem;
@@ -79,7 +79,7 @@ st.markdown("""
     }
 
     [data-testid="stTab"]:hover {
-        background-color: #2D2D2D; /* Slightly lighter dark grey on hover */
+        background-color: #3A3A3A; /* Slightly lighter dark grey on hover */
         color: #E0E0E0; /* Lighter text on hover */
         box-shadow: 0 1px 4px rgba(0,0,0,0.3); /* Slight lift on hover */
     }
@@ -328,18 +328,40 @@ st.markdown("""
         font-style: italic;
     }
 
+    /* Search Bar Styling */
+    .search-bar-container {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 1.5rem;
+        background-color: #1E1E1E;
+        border-radius: 8px;
+        padding: 10px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    }
+    .search-bar-container .stTextInput input {
+        background-color: #2D2D2D;
+        color: #E0E0E0;
+        border: 1px solid #555555;
+        border-radius: 6px;
+        padding: 10px 15px;
+    }
+    .search-bar-container .stTextInput input:focus {
+        border-color: #1890FF;
+        box-shadow: 0 0 0 0.2rem rgba(24, 144, 255, 0.25);
+    }
 </style>
 """, unsafe_allow_html=True)
 
 
 # --- File Paths & Directory Setup ---
 DATA_DIR = "data"
-# CHAT_FILE = os.path.join(DATA_DIR, "chat_history.csv") # REMOVED
-NOTIFICATIONS_FILE = os.path.join(DATA_DIR, "notifications.csv") # NEW MAILBOX FILE
+NOTIFICATIONS_FILE = os.path.join(DATA_DIR, "notifications.csv")
 FILES_FILE = os.path.join(DATA_DIR, "uploaded_files.csv")
 PROJECTS_FILE = os.path.join(DATA_DIR, "project_tasks.csv")
 ASSETS_FILE = os.path.join(DATA_DIR, "assets.csv")
 AUDITS_FILE = os.path.join(DATA_DIR, "audit_points.csv")
+EVENTS_FILE = os.path.join(DATA_DIR, "events.csv") # NEW CALENDAR EVENTS FILE
 SUPPLIER_RECORDS_DIR = os.path.join(DATA_DIR, "supplier_records")
 SUPPLIER_DUMMY_DATA_FILE = os.path.join(DATA_DIR, "supplier_dummy_data.csv")
 
@@ -388,19 +410,74 @@ def update_data(file_path, df_to_save):
     """Overwrites the entire CSV file with the given DataFrame."""
     df_to_save.to_csv(file_path, index=False)
 
+# --- Dynamic Search and Filter Function ---
+def apply_search_and_filter(df, search_query_key, advance_search_key):
+    st.markdown('<div class="search-bar-container">', unsafe_allow_html=True)
+    search_query = st.text_input("Search...", key=search_query_key, placeholder="Type to search...", help="Search across all visible columns.")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    filtered_df = df.copy()
+
+    if search_query:
+        search_lower = search_query.lower()
+        # Search across all string columns
+        filtered_df = filtered_df[
+            filtered_df.apply(lambda row: row.astype(str).str.lower().str.contains(search_lower).any(), axis=1)
+        ]
+
+    with st.expander("Advanced Search & Filters", expanded=False):
+        if not filtered_df.empty:
+            cols = filtered_df.columns.tolist()
+            # Exclude ID columns from direct text filter, but allow them in options
+            filterable_cols = [col for col in cols if filtered_df[col].dtype == 'object' or len(filtered_df[col].unique()) <= 20] # Text or low cardinality
+            
+            # Use unique keys for each expander's advanced search elements
+            selected_column = st.selectbox("Filter by Column", [''] + filterable_cols, key=f"{advance_search_key}_col")
+
+            if selected_column:
+                unique_values = filtered_df[selected_column].dropna().unique().tolist()
+                
+                # Convert numbers to strings for consistent search/selection if mixed types
+                unique_values = [str(val) for val in unique_values]
+                unique_values.sort() # Sort alphabetically
+
+                if filtered_df[selected_column].dtype == 'object' and len(unique_values) > 50: # For high cardinality text columns
+                    filter_text_query = st.text_input(f"Enter search term for '{selected_column}'", key=f"{advance_search_key}_text_filter")
+                    if filter_text_query:
+                        filtered_df = filtered_df[filtered_df[selected_column].astype(str).str.contains(filter_text_query, case=False, na=False)]
+                elif filtered_df[selected_column].dtype in ['int64', 'float64']: # For numeric columns
+                    min_val, max_val = float(filtered_df[selected_column].min()), float(filtered_df[selected_column].max())
+                    col_min, col_max = st.slider(f"Filter by range for '{selected_column}'", min_value=min_val, max_value=max_val, value=(min_val, max_val), key=f"{advance_search_key}_num_range")
+                    filtered_df = filtered_df[(filtered_df[selected_column] >= col_min) & (filtered_df[selected_column] <= col_max)]
+                else: # For low cardinality categorical or other types
+                    selected_values = st.multiselect(f"Select values for '{selected_column}'", unique_values, key=f"{advance_search_key}_multiselect")
+                    if selected_values:
+                        # Convert column to string for consistent comparison with selected_values
+                        filtered_df = filtered_df[filtered_df[selected_column].astype(str).isin(selected_values)]
+        else:
+            st.info("No data to apply advanced filters.")
+    
+    return filtered_df
+
 
 # --- Initialize CSV Files ---
-# initialize_csv(CHAT_FILE, ["role", "message", "timestamp", "chat_partner"]) # REMOVED
 notification_columns = [
     "notification_id", "sender_role", "recipient_role", "subject", "message",
     "timestamp", "status", "parent_notification_id" # status: Sent, Read, Replied
 ]
 initialize_csv(NOTIFICATIONS_FILE, notification_columns) # NEW
 initialize_csv(FILES_FILE, ["filename", "type", "size", "uploader", "timestamp", "path"])
-initialize_csv(PROJECTS_FILE, ["task_id", "task_name", "status", "assigned_to", "due_date", "description", "input_pending"])
-initialize_csv(ASSETS_FILE, ["asset_id", "asset_name", "location", "status", "eol_date", "calibration_date", "notes", "supplier"])
-initialize_csv(AUDITS_FILE, ["audit_id", "point_description", "status", "assignee", "due_date", "resolution", "input_pending"])
-
+project_columns = ["task_id", "task_name", "status", "assigned_to", "due_date", "description", "input_pending"]
+initialize_csv(PROJECTS_FILE, project_columns)
+asset_columns = ["asset_id", "asset_name", "location", "status", "eol_date", "calibration_date", "notes", "supplier"]
+initialize_csv(ASSETS_FILE, asset_columns)
+audit_columns = ["audit_id", "point_description", "status", "assignee", "due_date", "resolution", "input_pending"]
+initialize_csv(AUDITS_FILE, audit_columns)
+event_columns = [
+    "event_id", "title", "description", "start_date", "end_date",
+    "attendees", "created_by", "timestamp"
+]
+initialize_csv(EVENTS_FILE, event_columns) # NEW
 supplier_columns = [
     "supplier_id", "supplier_name", "contact_person", "email", "phone",
     "agreement_status", "last_audit_score", "notes",
@@ -432,7 +509,8 @@ tab_titles = [
     "📅 Project Management",
     "📋 Audit Management",
     "📁 File Management",
-    "📧 Mailbox" # Changed from "💬 Chat" to "📧 Mailbox"
+    "📧 Mailbox",
+    "🗓️ Calendar" # NEW CALENDAR TAB
 ]
 
 # Create horizontal tabs
@@ -449,6 +527,9 @@ if "mailbox_view" not in st.session_state:
 if "selected_notification_id" not in st.session_state:
     st.session_state.selected_notification_id = None
 
+if "events_df" not in st.session_state:
+    st.session_state.events_df = load_data(EVENTS_FILE, columns=event_columns)
+
 
 # --- Main Application Content based on Tab Selection ---
 
@@ -461,13 +542,22 @@ with tabs[0]: # Corresponding to "📊 OEM Dashboard"
         st.warning("🔒 You must be logged in as 'OEM' to view this dashboard.")
     else:
         # Load all relevant data for the dashboard
-        projects_df = load_data(PROJECTS_FILE, columns=["task_id", "task_name", "status", "assigned_to", "due_date", "input_pending"])
-        assets_df = load_data(ASSETS_FILE, columns=["asset_id", "asset_name", "location", "status", "supplier"])
-        audits_df = load_data(AUDITS_FILE, columns=["audit_id", "point_description", "status", "assignee", "due_date", "input_pending"])
+        projects_df = load_data(PROJECTS_FILE, columns=project_columns)
+        assets_df = load_data(ASSETS_FILE, columns=asset_columns)
+        audits_df = load_data(AUDITS_FILE, columns=audit_columns)
         supplier_df = load_data(SUPPLIER_DUMMY_DATA_FILE, columns=supplier_columns)
 
+        # Apply search and filter to supplier_df (example, adjust for other DFs if needed)
         st.markdown("---")
         st.subheader("Supplier Performance & Financial Overview")
+        st.markdown("You can search and filter the supplier data below.")
+        filtered_supplier_df = apply_search_and_filter(supplier_df, "oem_dashboard_search", "oem_dashboard_advance_search")
+
+        if not filtered_supplier_df.empty:
+            st.dataframe(filtered_supplier_df, use_container_width=True, hide_index=True)
+        else:
+            st.info("No supplier data matching your search/filter criteria.")
+
 
         with st.container():
             col_sup1, col_sup2 = st.columns(2)
@@ -745,13 +835,16 @@ with tabs[1]: # Corresponding to "👥 Supplier Records"
     st.markdown("View and manage detailed information about your valued suppliers. This comprehensive database enables efficient supplier relationship management.")
 
     supplier_df = load_data(SUPPLIER_DUMMY_DATA_FILE, columns=supplier_columns)
+    
+    st.markdown("---")
+    st.subheader("Current Supplier Database")
+    # Apply search and filter to supplier_df
+    filtered_supplier_df = apply_search_and_filter(supplier_df, "supplier_records_search", "supplier_records_advance_search")
 
-    with st.container():
-        st.subheader("Current Supplier Database")
-        if not supplier_df.empty:
-            st.dataframe(supplier_df, use_container_width=True, hide_index=True)
-        else:
-            st.info("No supplier records available. Please add new suppliers below.")
+    if not filtered_supplier_df.empty:
+        st.dataframe(filtered_supplier_df, use_container_width=True, hide_index=True)
+    else:
+        st.info("No supplier records available or no records matching your search/filter criteria. Please add new suppliers below.")
 
     st.markdown("---")
     with st.container():
@@ -835,6 +928,19 @@ with tabs[2]: # Corresponding to "🛠️ Asset Management"
     if not supplier_names_for_dropdown:
         supplier_names_for_dropdown = ["N/A (No suppliers found)"] # Fallback if supplier file is empty
 
+    st.markdown("---")
+    st.subheader("Asset Inventory Log")
+    assets_df = load_data(ASSETS_FILE, columns=asset_columns)
+    
+    # Apply search and filter to assets_df
+    filtered_assets_df = apply_search_and_filter(assets_df, "asset_management_search", "asset_management_advance_search")
+
+    if not filtered_assets_df.empty:
+        st.dataframe(filtered_assets_df, use_container_width=True, hide_index=True)
+    else:
+        st.info("No assets logged yet or no assets matching your search/filter criteria. Add assets using the 'Add New Asset' expander below.")
+
+    st.markdown("---")
     with st.container():
         st.subheader("Add New Asset")
         with st.expander("Click to log a new asset", expanded=False):
@@ -876,21 +982,27 @@ with tabs[2]: # Corresponding to "🛠️ Asset Management"
                 elif asset_submitted:
                     st.error("❗ Asset ID and Asset Name are required.")
 
-    st.markdown("---")
-    with st.container():
-        st.subheader("Asset Inventory Log")
-        assets_df = load_data(ASSETS_FILE)
-        if not assets_df.empty:
-            st.dataframe(assets_df, use_container_width=True, hide_index=True)
-        else:
-            st.info("No assets logged yet. Add assets using the 'Add New Asset' expander above.")
-
 
 # --- Project Management Module (Gantt) ---
 with tabs[3]: # Corresponding to "📅 Project Management"
     st.subheader("Project Management Tool")
     st.markdown("Streamline and track all collaborative projects and tasks with your suppliers. Monitor progress, deadlines, and critical path items.")
 
+    st.markdown("---")
+    st.subheader("Current Project Tasks")
+    projects_df = load_data(PROJECTS_FILE, columns=project_columns)
+
+    # Apply search and filter to projects_df
+    filtered_projects_df = apply_search_and_filter(projects_df, "project_management_search", "project_management_advance_search")
+
+    if not filtered_projects_df.empty:
+        st.dataframe(filtered_projects_df, use_container_width=True, hide_index=True)
+        st.info("💡 Tip: For a full Gantt chart visualization, a dedicated library like Plotly's Timeline chart could be integrated.")
+    else:
+        st.info("No project tasks added yet or no tasks matching your search/filter criteria. Add tasks using the 'Add New Project Task' section below.")
+
+
+    st.markdown("---")
     with st.container():
         st.subheader("Add New Project Task")
         with st.expander("Click to create a new task", expanded=False):
@@ -926,22 +1038,26 @@ with tabs[3]: # Corresponding to "📅 Project Management"
                 elif submitted:
                     st.error("❗ Task Name is required.")
 
-    st.markdown("---")
-    with st.container():
-        st.subheader("Current Project Tasks")
-        projects_df = load_data(PROJECTS_FILE)
-        if not projects_df.empty:
-            st.dataframe(projects_df, use_container_width=True, hide_index=True)
-            st.info("💡 Tip: For a full Gantt chart visualization, a dedicated library like Plotly's Timeline chart could be integrated.")
-        else:
-            st.info("No project tasks added yet. Add tasks using the 'Add New Project Task' section above.")
-
 
 # --- Audit Management Module ---
 with tabs[4]: # Corresponding to "📋 Audit Management"
     st.subheader("Supplier Assessment & Actions Tracking")
     st.markdown("Efficiently manage supplier audit findings, track corrective actions, and maintain a robust assessment history.")
 
+    st.markdown("---")
+    st.subheader("Audit Records & Open Points")
+    audits_df = load_data(AUDITS_FILE, columns=audit_columns)
+    
+    # Apply search and filter to audits_df
+    filtered_audits_df = apply_search_and_filter(audits_df, "audit_management_search", "audit_management_advance_search")
+
+    if not filtered_audits_df.empty:
+        st.dataframe(filtered_audits_df, use_container_width=True, hide_index=True)
+    else:
+        st.info("No audit points recorded yet or no audit points matching your search/filter criteria. Add audit points using the 'Add New Audit Point / Finding' section below.")
+
+
+    st.markdown("---")
     with st.container():
         st.subheader("Add New Audit Point / Finding")
         with st.expander("Click to log a new audit point", expanded=False):
@@ -977,21 +1093,45 @@ with tabs[4]: # Corresponding to "📋 Audit Management"
                 elif audit_submitted:
                     st.error("❗ Audit Point Description is required.")
 
-    st.markdown("---")
-    with st.container():
-        st.subheader("Audit Records & Open Points")
-        audits_df = load_data(AUDITS_FILE)
-        if not audits_df.empty:
-            st.dataframe(audits_df, use_container_width=True, hide_index=True)
-        else:
-            st.info("No audit points recorded yet. Add audit points using the 'Add New Audit Point / Finding' section above.")
-
 
 # --- File Management Module ---
 with tabs[5]: # Corresponding to "📁 File Management"
     st.subheader("Secured File Management & Version Control")
     st.markdown("Securely upload, store, and manage all critical documents with your suppliers. Ensure data integrity and controlled access.")
 
+    st.markdown("---")
+    st.subheader("Uploaded Files History")
+    files_df = load_data(FILES_FILE, columns=["filename", "type", "size", "uploader", "timestamp", "path"])
+    
+    # Apply search and filter to files_df
+    filtered_files_df = apply_search_and_filter(files_df, "file_management_search", "file_management_advance_search")
+
+    if not filtered_files_df.empty:
+        display_df = filtered_files_df.drop(columns=['path']) # Hide path from display table
+        st.dataframe(display_df, use_container_width=True, hide_index=True)
+
+        st.markdown("##### Download Files")
+        selected_file_name_to_download = st.selectbox("Select a file to download:", filtered_files_df['filename'].tolist(), key="download_file_select")
+        if selected_file_name_to_download:
+            file_to_download_path_series = filtered_files_df[filtered_files_df['filename'] == selected_file_name_to_download]['path']
+            file_to_download_path = file_to_download_path_series.iloc[0] if not file_to_download_path_series.empty else ''
+
+            if file_to_download_path and os.path.exists(file_to_download_path):
+                with open(file_to_download_path, "rb") as file:
+                    st.download_button(
+                        label=f"⬇️ Download {selected_file_name_to_download}",
+                        data=file,
+                        file_name=selected_file_name_to_download,
+                        mime=files_df[files_df['filename'] == selected_file_name_to_download]['type'].iloc[0],
+                        key=f"download_btn_{selected_file_name_to_download}"
+                    )
+            else:
+                st.warning(f"❗ File '{selected_file_name_to_download}' not found at path: {file_to_download_path}. It might be a dummy entry without a physical file, or the path is incorrect.")
+    else:
+        st.info("No files uploaded yet or no files matching your search/filter criteria. Use the section below to upload your documents.")
+
+
+    st.markdown("---")
     with st.container():
         st.subheader("Upload New File")
         upload_folder_options = {"General Files": DATA_DIR, "Supplier Records (NDA/MSA)": SUPPLIER_RECORDS_DIR}
@@ -1029,35 +1169,6 @@ with tabs[5]: # Corresponding to "📁 File Management"
             except Exception as e:
                 st.error(f"❗ Error saving file: {e}")
 
-    st.markdown("---")
-    with st.container():
-        st.subheader("Uploaded Files History")
-        files_df = load_data(FILES_FILE, columns=["filename", "type", "size", "uploader", "timestamp", "path"])
-        if not files_df.empty:
-            files_df['path'] = files_df['path'].fillna('').astype(str) # Ensure 'path' is string
-            display_df = files_df.drop(columns=['path']) # Hide path from display table
-            st.dataframe(display_df, use_container_width=True, hide_index=True)
-
-            st.markdown("##### Download Files")
-            selected_file_name_to_download = st.selectbox("Select a file to download:", files_df['filename'].tolist(), key="download_file_select")
-            if selected_file_name_to_download:
-                file_to_download_path_series = files_df[files_df['filename'] == selected_file_name_to_download]['path']
-                file_to_download_path = file_to_download_path_series.iloc[0] if not file_to_download_path_series.empty else ''
-
-                if file_to_download_path and os.path.exists(file_to_download_path):
-                    with open(file_to_download_path, "rb") as file:
-                        st.download_button(
-                            label=f"⬇️ Download {selected_file_name_to_download}",
-                            data=file,
-                            file_name=selected_file_name_to_download,
-                            mime=files_df[files_df['filename'] == selected_file_name_to_download]['type'].iloc[0],
-                            key=f"download_btn_{selected_file_name_to_download}"
-                        )
-                else:
-                    st.warning(f"❗ File '{selected_file_name_to_download}' not found at path: {file_to_download_path}. It might be a dummy entry without a physical file, or the path is incorrect.")
-        else:
-            st.info("No files uploaded yet. Use the section above to upload your documents.")
-
 # --- Mailbox Module (NEW) ---
 with tabs[6]: # Corresponding to "📧 Mailbox"
     st.subheader("Inter-Company Mailbox")
@@ -1071,17 +1182,20 @@ with tabs[6]: # Corresponding to "📧 Mailbox"
     with mailbox_tabs[0]: # Inbox Tab
         st.markdown("### Your Received Notifications")
         
-        # Filter messages where current user is the recipient, and it's not a reply
-        inbox_messages = st.session_state.notifications_df[
+        # Apply search and filter to inbox messages
+        inbox_messages_raw = st.session_state.notifications_df[
             (st.session_state.notifications_df['recipient_role'] == user_role) &
             (st.session_state.notifications_df['parent_notification_id'].isna()) # Only show top-level messages
         ].sort_values(by="timestamp", ascending=False)
+        
+        filtered_inbox_messages = apply_search_and_filter(inbox_messages_raw, "inbox_search", "inbox_advance_search")
 
-        if inbox_messages.empty:
-            st.info("Your inbox is empty.")
+
+        if filtered_inbox_messages.empty:
+            st.info("Your inbox is empty or no messages matching your search/filter criteria.")
         else:
             st.markdown('<div style="max-height: 400px; overflow-y: auto;">', unsafe_allow_html=True) # Scrollable area for messages
-            for idx, row in inbox_messages.iterrows():
+            for idx, row in filtered_inbox_messages.iterrows():
                 notification_id = row['notification_id']
                 sender = row['sender_role']
                 subject = row['subject']
@@ -1110,7 +1224,7 @@ with tabs[6]: # Corresponding to "📧 Mailbox"
                         st.session_state.selected_notification_id = notification_id
                         st.session_state.mailbox_view = "view_message"
                         # Mark as read
-                        if row['status'] == "Sent": # Only mark as read if it was just "Sent" (not already Replied)
+                        if st.session_state.notifications_df.loc[idx, 'status'] == "Sent": # Only mark as read if it was just "Sent" (not already Replied)
                             st.session_state.notifications_df.loc[idx, 'status'] = "Read"
                             update_data(NOTIFICATIONS_FILE, st.session_state.notifications_df)
                         st.rerun()
@@ -1121,15 +1235,20 @@ with tabs[6]: # Corresponding to "📧 Mailbox"
         st.markdown("### Your Sent Notifications")
 
         # Filter messages where current user is the sender (top-level messages or replies)
-        sent_messages = st.session_state.notifications_df[
+        sent_messages_raw = st.session_state.notifications_df[
             st.session_state.notifications_df['sender_role'] == user_role
         ].sort_values(by="timestamp", ascending=False)
 
-        if sent_messages.empty:
-            st.info("You haven't sent any notifications yet.")
+        # Filter out replies if the original message is also shown for the sender
+        # For simplicity, let's just show all sent messages including replies for now
+        # If needed, we can implement more complex threading logic
+        filtered_sent_messages = apply_search_and_filter(sent_messages_raw, "sent_mailbox_search", "sent_mailbox_advance_search")
+
+        if filtered_sent_messages.empty:
+            st.info("You haven't sent any notifications yet or no messages matching your search/filter criteria.")
         else:
             st.markdown('<div style="max-height: 400px; overflow-y: auto;">', unsafe_allow_html=True) # Scrollable area for messages
-            for idx, row in sent_messages.iterrows():
+            for idx, row in filtered_sent_messages.iterrows():
                 notification_id = row['notification_id']
                 recipient = row['recipient_role']
                 subject = row['subject']
@@ -1289,6 +1408,96 @@ with tabs[6]: # Corresponding to "📧 Mailbox"
                 st.rerun()
 
     st.markdown('</div>', unsafe_allow_html=True) # End mailbox-container
+
+# --- Calendar Module (NEW) ---
+with tabs[7]: # Corresponding to "🗓️ Calendar"
+    st.subheader("Inter-Company Calendar")
+    st.markdown("Coordinate events, meetings, and deadlines across all relevant stakeholders. All synchronized events are visible to all involved parties.")
+
+    st.markdown("---")
+    st.subheader("Upcoming Events")
+
+    events_df = st.session_state.events_df.copy()
+
+    # Filter events based on who is attending
+    if not events_df.empty:
+        # Convert 'attendees' column to list of strings for easier checking
+        events_df['attendees'] = events_df['attendees'].apply(lambda x: eval(x) if isinstance(x, str) else x)
+        
+        # Filter for events where current user is an attendee or creator
+        # Also filter for events that are in the future or ongoing
+        filtered_events = events_df[
+            (events_df['attendees'].apply(lambda x: user_role in x if isinstance(x, list) else False)) |
+            (events_df['created_by'] == user_role)
+        ].copy()
+
+        # Convert date columns to datetime objects for proper sorting and comparison
+        filtered_events['start_date'] = pd.to_datetime(filtered_events['start_date'], errors='coerce')
+        filtered_events['end_date'] = pd.to_datetime(filtered_events['end_date'], errors='coerce')
+
+        # Filter for events that are in the future or ongoing
+        today = datetime.now().normalize()
+        filtered_events = filtered_events[(filtered_events['end_date'] >= today) | (filtered_events['start_date'] >= today)]
+
+        filtered_events = filtered_events.sort_values(by="start_date", ascending=True)
+        
+        # Apply search and filter to events_df
+        display_events_df = apply_search_and_filter(filtered_events, "calendar_search", "calendar_advance_search")
+
+        if not display_events_df.empty:
+            # Format dates for display
+            display_events_df['start_date'] = display_events_df['start_date'].dt.strftime("%Y-%m-%d")
+            display_events_df['end_date'] = display_events_df['end_date'].dt.strftime("%Y-%m-%d")
+            st.dataframe(display_events_df[['title', 'description', 'start_date', 'end_date', 'attendees', 'created_by']], use_container_width=True, hide_index=True)
+        else:
+            st.info("No upcoming events or no events matching your search/filter criteria. Add new events below.")
+    else:
+        st.info("No events scheduled yet. Add new events below.")
+
+
+    st.markdown("---")
+    with st.container():
+        st.subheader("Schedule New Event")
+        with st.expander("Click to schedule a new event", expanded=False):
+            with st.form("new_event_form", clear_on_submit=True):
+                event_id = f"EVT-{int(datetime.now().timestamp())}-{np.random.randint(1000, 9999)}"
+                event_title = st.text_input("Event Title", placeholder="e.g., Q3 Supplier Review Meeting")
+                event_description = st.text_area("Event Description", placeholder="Detailed agenda or notes for the event.")
+
+                col_e1, col_e2 = st.columns(2)
+                with col_e1:
+                    event_start_date = st.date_input("Start Date", value=datetime.today(), key="event_start_date")
+                with col_e2:
+                    event_end_date = st.date_input("End Date", value=datetime.today() + timedelta(days=1), key="event_end_date")
+                
+                # Attendees selection (multiselect from all user roles)
+                all_possible_attendees = user_roles # Already defined globally
+                selected_attendees = st.multiselect("Attendees", all_possible_attendees, default=[user_role])
+
+                schedule_button = st.form_submit_button("➕ Schedule Event")
+
+                if schedule_button:
+                    if event_title and event_start_date and event_end_date and selected_attendees:
+                        if event_start_date > event_end_date:
+                            st.error("❗ Start date cannot be after end date.")
+                        else:
+                            new_event = {
+                                "event_id": event_id,
+                                "title": event_title,
+                                "description": event_description,
+                                "start_date": event_start_date.strftime("%Y-%m-%d"),
+                                "end_date": event_end_date.strftime("%Y-%m-%d"),
+                                "attendees": str(selected_attendees), # Store as string representation of list
+                                "created_by": user_role,
+                                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                            }
+                            append_data(EVENTS_FILE, pd.DataFrame([new_event]))
+                            st.session_state.events_df = load_data(EVENTS_FILE, columns=event_columns) # Refresh dataframe
+                            st.success(f"✅ Event '{event_title}' scheduled successfully!")
+                            st.rerun()
+                    else:
+                        st.error("❗ Please fill in all required fields (Title, Start Date, End Date, Attendees).")
+
 
 # --- Footer ---
 st.sidebar.markdown("---")
