@@ -502,4 +502,131 @@ with tabs[4]:
 
             if asset_submitted and asset_id_val and asset_name:
                 new_asset = {
-                    "asset_id": asset
+                    "asset_id": asset_id_val,
+                    "asset_name": asset_name,
+                    "location": location,
+                    "status": asset_status,
+                    "eol_date": eol_date.strftime("%Y-%m-%d") if eol_date else None,
+                    "calibration_date": calibration_date.strftime("%Y-%m-%d") if calibration_date else None,
+                    "notes": notes,
+                    "supplier": asset_supplier
+                }
+                append_data(ASSETS_FILE, pd.DataFrame([new_asset]))
+                st.success(f"Asset '{asset_name}' ({asset_id_val}) added successfully!")
+                st.rerun()
+            elif asset_submitted:
+                st.error("Asset ID and Asset Name are required.")
+
+    st.markdown("---")
+    st.subheader("Asset Inventory Log")
+    assets_df = load_data(ASSETS_FILE)
+    if not assets_df.empty:
+        st.dataframe(assets_df, use_container_width=True)
+    else:
+        st.info("No assets logged yet. Add assets using the 'Add New Asset' expander above.")
+
+# --- Audit Management Module ---
+with tabs[5]:
+    st.subheader("🔍 Supplier Assessment Report & Actions Tracking")
+    st.markdown("Features: Assessment management, Tracking open points with reminders, Third-party audit scores access, Deviation management. *Future: Reminder system, Score integration.*")
+
+    with st.expander("Add New Audit Point / Finding", expanded=False):
+        with st.form("new_audit_point_form", clear_on_submit=True):
+            audit_id_val = f"AUDIT-{int(datetime.now().timestamp())}"
+            point_description = st.text_area("Audit Point/Finding Description")
+            audit_status_options = ["Open", "In Progress", "Resolved", "Pending Verification", "Closed", "Deviation Accepted"]
+            audit_status = st.selectbox("Status", audit_status_options)
+            assignee = st.selectbox("Assignee", user_roles + ["Cross-functional Team"])
+            due_date_audit = st.date_input("Due Date for Resolution", min_value=datetime.today(), key="due_date_audit")
+            resolution = st.text_area("Resolution / Corrective Action")
+            input_pending_audit = st.checkbox("Requires Input from Stakeholders?", value=False)
+            audit_submitted = st.form_submit_button("Add Audit Point")
+
+            if audit_submitted and point_description:
+                new_audit_point = {
+                    "audit_id": audit_id_val,
+                    "point_description": point_description,
+                    "status": audit_status,
+                    "assignee": assignee,
+                    "due_date": due_date_audit.strftime("%Y-%m-%d"),
+                    "resolution": resolution,
+                    "input_pending": "Yes" if input_pending_audit else "No"
+                }
+                append_data(AUDITS_FILE, pd.DataFrame([new_audit_point]))
+                st.success(f"Audit point '{audit_id_val}' added successfully!")
+                st.rerun()
+            elif audit_submitted:
+                st.error("Audit Point Description is required.")
+
+    st.markdown("---")
+    st.subheader("Audit Records & Open Points")
+    audits_df = load_data(AUDITS_FILE)
+    if not audits_df.empty:
+        st.dataframe(audits_df, use_container_width=True)
+    else:
+        st.info("No audit points recorded yet. Add audit points using the 'Add New Audit Point / Finding' expander above.")
+
+# --- Supplier Records Module ---
+with tabs[6]:
+    st.subheader("👥 Supplier Records")
+    st.markdown("View and manage detailed information about your suppliers.")
+
+    supplier_df = load_data(SUPPLIER_DUMMY_DATA_FILE, columns=supplier_columns)
+
+    if not supplier_df.empty:
+        st.dataframe(supplier_df, use_container_width=True)
+    else:
+        st.info("No supplier records available. Ensure 'supplier_dummy_data.csv' is in your 'data/' folder.")
+
+    st.markdown("---")
+    st.write("### Add New Supplier Record")
+    with st.expander("Add New Supplier", expanded=False):
+        with st.form("new_supplier_form", clear_on_submit=True):
+            new_supplier_id = st.text_input("Supplier ID (e.g., SUP-006)")
+            new_supplier_name = st.text_input("Supplier Name")
+            new_contact_person = st.text_input("Contact Person")
+            new_email = st.text_input("Email")
+            new_phone = st.text_input("Phone")
+            new_agreement_status = st.selectbox("Agreement Status", ["Active", "Pending Renewal", "Terminated", "On Hold"])
+            new_last_audit_score = st.number_input("Last Audit Score", min_value=0, max_value=100, value=80, key="new_last_audit_score")
+            new_notes = st.text_area("Notes")
+
+            st.markdown("---")
+            st.write("#### Additional Details:")
+            new_primary_product_category = st.text_input("Primary Product Category (e.g., Raw Materials, Electronics)")
+            new_on_time_delivery_rate = st.slider("On-Time Delivery Rate (%)", min_value=0.0, max_value=100.0, value=95.0, step=0.1)
+            new_quality_reject_rate = st.slider("Quality Reject Rate (%)", min_value=0.0, max_value=10.0, value=0.5, step=0.1)
+            new_risk_level = st.selectbox("Risk Level", ["Low", "Medium", "High"])
+            new_certification = st.text_input("Certifications (comma-separated, e.g., ISO 9001, IATF 16949)")
+            new_annual_spend_usd = st.number_input("Annual Spend (USD)", min_value=0, value=100000, step=10000)
+            new_last_performance_review_date = st.date_input("Last Performance Review Date", value=None, key="new_last_performance_review_date")
+
+            supplier_submitted = st.form_submit_button("Add Supplier")
+
+            if supplier_submitted and new_supplier_id and new_supplier_name:
+                new_supplier_entry = {
+                    "supplier_id": new_supplier_id,
+                    "supplier_name": new_supplier_name,
+                    "contact_person": new_contact_person,
+                    "email": new_email,
+                    "phone": new_phone,
+                    "agreement_status": new_agreement_status,
+                    "last_audit_score": new_last_audit_score,
+                    "notes": new_notes,
+                    "primary_product_category": new_primary_product_category,
+                    "on_time_delivery_rate": new_on_time_delivery_rate,
+                    "quality_reject_rate": new_quality_reject_rate,
+                    "risk_level": new_risk_level,
+                    "certification": new_certification,
+                    "annual_spend_usd": new_annual_spend_usd,
+                    "last_performance_review_date": new_last_performance_review_date.strftime("%Y-%m-%d") if new_last_performance_review_date else None
+                }
+                append_data(SUPPLIER_DUMMY_DATA_FILE, pd.DataFrame([new_supplier_entry]))
+                st.success(f"Supplier '{new_supplier_name}' ({new_supplier_id}) added successfully!")
+                st.rerun()
+            elif supplier_submitted:
+                st.error("Supplier ID and Supplier Name are required.")
+
+
+st.sidebar.markdown("---")
+st.sidebar.info("This is a demo application. Data is stored locally in CSV files in the 'data' directory.")
