@@ -328,7 +328,7 @@ st.markdown("""
         font-style: italic;
     }
 
-    /* Search Bar Styling */
+    /* Search Bar Styling (only if used in specific tabs) */
     .search-bar-container {
         display: flex;
         align-items: center;
@@ -350,6 +350,32 @@ st.markdown("""
         border-color: #1890FF;
         box-shadow: 0 0 0 0.2rem rgba(24, 144, 255, 0.25);
     }
+
+    /* Comment Section Styling */
+    .comment-card {
+        background-color: #2D2D2D;
+        border-left: 4px solid #90CAF9; /* Light blue border */
+        border-radius: 8px;
+        padding: 10px 15px;
+        margin-bottom: 10px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    .comment-card .comment-meta {
+        font-size: 0.8em;
+        color: #B0B0B0;
+        margin-bottom: 5px;
+    }
+    .comment-card .comment-body {
+        color: #E0E0E0;
+        white-space: pre-wrap;
+    }
+    .reply-to-comment {
+        margin-left: 20px;
+        border-left: 2px dashed #555555;
+        padding-left: 10px;
+        margin-top: 10px;
+    }
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -361,7 +387,8 @@ FILES_FILE = os.path.join(DATA_DIR, "uploaded_files.csv")
 PROJECTS_FILE = os.path.join(DATA_DIR, "project_tasks.csv")
 ASSETS_FILE = os.path.join(DATA_DIR, "assets.csv")
 AUDITS_FILE = os.path.join(DATA_DIR, "audit_points.csv")
-EVENTS_FILE = os.path.join(DATA_DIR, "events.csv") # NEW CALENDAR EVENTS FILE
+EVENTS_FILE = os.path.join(DATA_DIR, "events.csv")
+FILE_COMMENTS_FILE = os.path.join(DATA_DIR, "file_comments.csv") # NEW FILE COMMENTS
 SUPPLIER_RECORDS_DIR = os.path.join(DATA_DIR, "supplier_records")
 SUPPLIER_DUMMY_DATA_FILE = os.path.join(DATA_DIR, "supplier_dummy_data.csv")
 
@@ -477,7 +504,11 @@ event_columns = [
     "event_id", "title", "description", "start_date", "end_date",
     "attendees", "created_by", "timestamp"
 ]
-initialize_csv(EVENTS_FILE, event_columns) # NEW
+initialize_csv(EVENTS_FILE, event_columns)
+file_comment_columns = [
+    "comment_id", "file_name", "parent_comment_id", "author", "timestamp", "comment_text", "mentions" # mentions: list of roles
+]
+initialize_csv(FILE_COMMENTS_FILE, file_comment_columns) # NEW FILE COMMENTS
 supplier_columns = [
     "supplier_id", "supplier_name", "contact_person", "email", "phone",
     "agreement_status", "last_audit_score", "notes",
@@ -510,7 +541,7 @@ tab_titles = [
     "📋 Audit Management",
     "📁 File Management",
     "📧 Mailbox",
-    "🗓️ Calendar" # NEW CALENDAR TAB
+    "🗓️ Calendar"
 ]
 
 # Create horizontal tabs
@@ -530,6 +561,15 @@ if "selected_notification_id" not in st.session_state:
 if "events_df" not in st.session_state:
     st.session_state.events_df = load_data(EVENTS_FILE, columns=event_columns)
 
+if "files_df" not in st.session_state:
+    st.session_state.files_df = load_data(FILES_FILE, columns=["filename", "type", "size", "uploader", "timestamp", "path"])
+
+if "file_comments_df" not in st.session_state:
+    st.session_state.file_comments_df = load_data(FILE_COMMENTS_FILE, columns=file_comment_columns)
+    # Ensure 'mentions' column is parsed as list
+    if 'mentions' in st.session_state.file_comments_df.columns:
+        st.session_state.file_comments_df['mentions'] = st.session_state.file_comments_df['mentions'].apply(lambda x: eval(x) if isinstance(x, str) else []).fillna('')
+
 
 # --- Main Application Content based on Tab Selection ---
 
@@ -547,16 +587,13 @@ with tabs[0]: # Corresponding to "📊 OEM Dashboard"
         audits_df = load_data(AUDITS_FILE, columns=audit_columns)
         supplier_df = load_data(SUPPLIER_DUMMY_DATA_FILE, columns=supplier_columns)
 
-        # Apply search and filter to supplier_df (example, adjust for other DFs if needed)
         st.markdown("---")
         st.subheader("Supplier Performance & Financial Overview")
-        st.markdown("You can search and filter the supplier data below.")
-        filtered_supplier_df = apply_search_and_filter(supplier_df, "oem_dashboard_search", "oem_dashboard_advance_search")
-
-        if not filtered_supplier_df.empty:
-            st.dataframe(filtered_supplier_df, use_container_width=True, hide_index=True)
+        # Removed search bar here
+        if not supplier_df.empty:
+            st.dataframe(supplier_df, use_container_width=True, hide_index=True)
         else:
-            st.info("No supplier data matching your search/filter criteria.")
+            st.info("No supplier data available. Please add new suppliers in '👥 Supplier Records'.")
 
 
         with st.container():
@@ -992,14 +1029,12 @@ with tabs[3]: # Corresponding to "📅 Project Management"
     st.subheader("Current Project Tasks")
     projects_df = load_data(PROJECTS_FILE, columns=project_columns)
 
-    # Apply search and filter to projects_df
-    filtered_projects_df = apply_search_and_filter(projects_df, "project_management_search", "project_management_advance_search")
-
-    if not filtered_projects_df.empty:
-        st.dataframe(filtered_projects_df, use_container_width=True, hide_index=True)
+    # NO search bar here
+    if not projects_df.empty:
+        st.dataframe(projects_df, use_container_width=True, hide_index=True)
         st.info("💡 Tip: For a full Gantt chart visualization, a dedicated library like Plotly's Timeline chart could be integrated.")
     else:
-        st.info("No project tasks added yet or no tasks matching your search/filter criteria. Add tasks using the 'Add New Project Task' section below.")
+        st.info("No project tasks added yet. Add tasks using the 'Add New Project Task' section below.")
 
 
     st.markdown("---")
@@ -1101,7 +1136,7 @@ with tabs[5]: # Corresponding to "📁 File Management"
 
     st.markdown("---")
     st.subheader("Uploaded Files History")
-    files_df = load_data(FILES_FILE, columns=["filename", "type", "size", "uploader", "timestamp", "path"])
+    files_df = st.session_state.files_df.copy() # Use session state DF
     
     # Apply search and filter to files_df
     filtered_files_df = apply_search_and_filter(files_df, "file_management_search", "file_management_advance_search")
@@ -1111,10 +1146,12 @@ with tabs[5]: # Corresponding to "📁 File Management"
         st.dataframe(display_df, use_container_width=True, hide_index=True)
 
         st.markdown("##### Download Files")
-        selected_file_name_to_download = st.selectbox("Select a file to download:", filtered_files_df['filename'].tolist(), key="download_file_select")
-        if selected_file_name_to_download:
-            file_to_download_path_series = filtered_files_df[filtered_files_df['filename'] == selected_file_name_to_download]['path']
-            file_to_download_path = file_to_download_path_series.iloc[0] if not file_to_download_path_series.empty else ''
+        selected_file_name_to_download = st.selectbox("Select a file to download or comment on:", filtered_files_df['filename'].tolist(), key="download_file_select")
+        
+        selected_file_row = filtered_files_df[filtered_files_df['filename'] == selected_file_name_to_download]
+        if not selected_file_row.empty:
+            file_to_download_path = selected_file_row['path'].iloc[0]
+            file_mime_type = selected_file_row['type'].iloc[0]
 
             if file_to_download_path and os.path.exists(file_to_download_path):
                 with open(file_to_download_path, "rb") as file:
@@ -1122,11 +1159,104 @@ with tabs[5]: # Corresponding to "📁 File Management"
                         label=f"⬇️ Download {selected_file_name_to_download}",
                         data=file,
                         file_name=selected_file_name_to_download,
-                        mime=files_df[files_df['filename'] == selected_file_name_to_download]['type'].iloc[0],
+                        mime=file_mime_type,
                         key=f"download_btn_{selected_file_name_to_download}"
                     )
+                
+                st.markdown("---")
+                st.subheader(f"Comments on '{selected_file_name_to_download}'")
+                
+                # Display comments
+                comments_for_file = st.session_state.file_comments_df[
+                    (st.session_state.file_comments_df['file_name'] == selected_file_name_to_download) &
+                    (st.session_state.file_comments_df['parent_comment_id'].isna())
+                ].sort_values(by="timestamp", ascending=True)
+
+                def display_comment_thread(comment_row, level=0):
+                    indent_style = f"margin-left: {level * 20}px;" if level > 0 else ""
+                    st.markdown(f'<div class="comment-card" style="{indent_style}">', unsafe_allow_html=True)
+                    st.markdown(f"<div class='comment-meta'>**{comment_row['author']}** at {comment_row['timestamp']}{' (mentioned: ' + ', '.join(comment_row['mentions']) + ')' if comment_row['mentions'] else ''}</div>", unsafe_allow_html=True)
+                    st.markdown(f"<div class='comment-body'>{comment_row['comment_text']}</div>", unsafe_allow_html=True)
+                    st.markdown('</div>', unsafe_allow_html=True)
+
+                    # Replies to this comment
+                    replies = st.session_state.file_comments_df[
+                        st.session_state.file_comments_df['parent_comment_id'] == comment_row['comment_id']
+                    ].sort_values(by="timestamp", ascending=True)
+
+                    if not replies.empty:
+                        st.markdown(f'<div class="reply-to-comment">', unsafe_allow_html=True)
+                        for _, reply_row in replies.iterrows():
+                            display_comment_thread(reply_row, level + 1)
+                        st.markdown('</div>', unsafe_allow_html=True)
+
+
+                if comments_for_file.empty:
+                    st.info("No comments yet. Be the first to add one!")
+                else:
+                    for idx, comment_row in comments_for_file.iterrows():
+                        display_comment_thread(comment_row)
+
+                st.markdown("---")
+                st.subheader("Add New Comment")
+                with st.form(key=f"add_comment_form_{selected_file_name_to_download}", clear_on_submit=True):
+                    comment_text = st.text_area("Your Comment", key=f"comment_text_{selected_file_name_to_download}", height=100,
+                                                help="Use @ followed by role (e.g., @OEM, @Supplier A, @Auditor) to mention users.")
+                    
+                    # Parse mentions from comment_text
+                    parsed_mentions = []
+                    for role in user_roles:
+                        if f"@{role}" in comment_text:
+                            parsed_mentions.append(role)
+                    
+                    submit_comment = st.form_submit_button("Post Comment")
+
+                    if submit_comment and comment_text:
+                        new_comment_id = f"COM-{int(datetime.now().timestamp())}-{np.random.randint(1000, 9999)}"
+                        new_comment = {
+                            "comment_id": new_comment_id,
+                            "file_name": selected_file_name_to_download,
+                            "parent_comment_id": None, # Top-level comment
+                            "author": user_role,
+                            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                            "comment_text": comment_text,
+                            "mentions": str(parsed_mentions) # Store as string representation of list
+                        }
+                        append_data(FILE_COMMENTS_FILE, pd.DataFrame([new_comment]))
+                        st.session_state.file_comments_df = load_data(FILE_COMMENTS_FILE, columns=file_comment_columns)
+                        # Ensure 'mentions' column is parsed as list after reload
+                        if 'mentions' in st.session_state.file_comments_df.columns:
+                            st.session_state.file_comments_df['mentions'] = st.session_state.file_comments_df['mentions'].apply(lambda x: eval(x) if isinstance(x, str) else []).fillna('')
+                        
+                        st.success("Comment added!")
+                        
+                        # Send notifications for mentions (conceptual)
+                        if parsed_mentions:
+                            notification_subject = f"You were mentioned in a comment on file: {selected_file_name_to_download}"
+                            notification_message = f"@{user_role} mentioned you in a comment on file '{selected_file_name_to_download}':\n\n\"{comment_text}\"\n\nGo to File Management tab to view the comment."
+                            for mentioned_role in parsed_mentions:
+                                if mentioned_role != user_role: # Don't notify self
+                                    new_notification_id = f"MENTION-{int(datetime.now().timestamp())}-{np.random.randint(1000, 9999)}"
+                                    mention_notification = {
+                                        "notification_id": new_notification_id,
+                                        "sender_role": user_role,
+                                        "recipient_role": mentioned_role,
+                                        "subject": notification_subject,
+                                        "message": notification_message,
+                                        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                                        "status": "Sent",
+                                        "parent_notification_id": None
+                                    }
+                                    append_data(NOTIFICATIONS_FILE, pd.DataFrame([mention_notification]))
+                                    st.session_state.notifications_df = load_data(NOTIFICATIONS_FILE, columns=notification_columns) # Refresh
+                        st.rerun()
+                    elif submit_comment:
+                        st.error("Comment cannot be empty.")
+
             else:
                 st.warning(f"❗ File '{selected_file_name_to_download}' not found at path: {file_to_download_path}. It might be a dummy entry without a physical file, or the path is incorrect.")
+        else:
+            st.info("Select a file from the list above to view details and comments.")
     else:
         st.info("No files uploaded yet or no files matching your search/filter criteria. Use the section below to upload your documents.")
 
@@ -1155,6 +1285,7 @@ with tabs[5]: # Corresponding to "📁 File Management"
                     "path": save_path
                 }
                 append_data(FILES_FILE, pd.DataFrame([file_details]))
+                st.session_state.files_df = load_data(FILES_FILE, columns=["filename", "type", "size", "uploader", "timestamp", "path"]) # Refresh
                 st.success(f"✅ '{uploaded_file.name}' uploaded successfully by {user_role} to '{selected_upload_folder_name}'!")
 
                 # Basic Preview
@@ -1352,7 +1483,7 @@ with tabs[6]: # Corresponding to "📧 Mailbox"
                 st.markdown("---")
                 st.markdown("#### Replies:")
                 st.markdown('<div class="reply-list">', unsafe_allow_html=True)
-                for _, reply_row in replies_df.iterrows():
+                for _, reply_row in replies.iterrows():
                     st.markdown(f"""
                         <div class="single-reply">
                             <div class="reply-meta">
