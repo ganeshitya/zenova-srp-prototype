@@ -500,11 +500,12 @@ if "open_chat_tabs" not in st.session_state:
 if "active_chat_tab" not in st.session_state:
     st.session_state.active_chat_tab = None
 
-# For Suppliers, pre-select OEM as the only potential chat partner
+# For Suppliers/Auditors, pre-select OEM as the only potential chat partner
 if user_role.startswith("Supplier") or user_role == "Auditor":
     if "OEM" not in st.session_state.open_chat_tabs:
         st.session_state.open_chat_tabs.append("OEM")
-    st.session_state.active_chat_tab = "OEM"
+    if st.session_state.active_chat_tab != "OEM": # Only set if not already OEM
+        st.session_state.active_chat_tab = "OEM"
 
 
 # --- Main Application Content based on Tab Selection ---
@@ -1127,7 +1128,7 @@ with tabs[6]: # Corresponding to "💬 Chat"
     with chat_col_left:
         st.markdown("#### Conversations")
         
-        # Get all unique chat participants excluding the current user role
+        # Get all unique chat partners excluding the current user role
         all_chat_partners = []
         if user_role == "OEM":
             # OEM can chat with all suppliers and Auditor
@@ -1156,9 +1157,12 @@ with tabs[6]: # Corresponding to "💬 Chat"
                 # Add "selected" class based on whether it's the active tab
                 selected_class = " selected" if st.session_state.active_chat_tab == partner else ""
                 
+                # Use a unique key for each button to prevent issues
+                button_key = f"chat_partner_select_button_{partner}"
+
                 if st.button(
                     f"**{partner}**",
-                    key=f"chat_partner_select_{partner}",
+                    key=button_key,
                     use_container_width=True,
                     help=f"Click to open chat with {partner}"
                 ):
@@ -1171,115 +1175,99 @@ with tabs[6]: # Corresponding to "💬 Chat"
 
     with chat_col_right:
         # --- Robust Logic for managing active chat tab ---
-        # 1. If active_chat_tab is not in open_chat_tabs but open_chat_tabs is not empty, default to the first tab
-        if st.session_state.active_chat_tab not in st.session_state.open_chat_tabs and st.session_state.open_chat_tabs:
-            st.session_state.active_chat_tab = st.session_state.open_chat_tabs[0]
-        # 2. If open_chat_tabs is empty, ensure active_chat_tab is None
-        elif not st.session_state.open_chat_tabs:
-            st.session_state.active_chat_tab = None
-
+        # 1. If open_chat_tabs is empty, there are no tabs to display.
         if not st.session_state.open_chat_tabs:
             st.info("Select a conversation from the left sidebar to open a chat.")
             if user_role.startswith("Supplier") or user_role == "Auditor":
                 st.warning("Note: Suppliers and Auditors can only chat with 'OEM'.")
         else:
+            # 2. Ensure active_chat_tab is valid and set correctly
+            if st.session_state.active_chat_tab not in st.session_state.open_chat_tabs:
+                # If the current active tab is not in the open tabs, default to the first one
+                st.session_state.active_chat_tab = st.session_state.open_chat_tabs[0]
+            
             # Get the index of the active tab for display
-            active_tab_index = 0 # Default to the first tab
-            if st.session_state.active_chat_tab and st.session_state.active_chat_tab in st.session_state.open_chat_tabs:
-                active_tab_index = st.session_state.open_chat_tabs.index(st.session_state.active_chat_tab)
-            elif st.session_state.open_chat_tabs: # If active_chat_tab is None or invalid, and there are open tabs, default to 0
-                 active_tab_index = 0
-            else: # Fallback if open_chat_tabs somehow becomes empty at this point (should be handled above)
-                active_tab_index = 0 # This case should ideally not be hit if the prior logic is correct
+            active_tab_index = st.session_state.open_chat_tabs.index(st.session_state.active_chat_tab)
+            
+            # Display the tabs
+            chat_tabs = st.tabs(st.session_state.open_chat_tabs, key="individual_chat_tabs", index=active_tab_index)
 
-            # Ensure active_tab_index is within bounds before calling st.tabs
-            if not st.session_state.open_chat_tabs:
-                # This state should be caught by the outer 'if not st.session_state.open_chat_tabs:' block.
-                # However, as a final safeguard before the st.tabs call:
-                st.warning("No chat tabs available to display.")
-            else:
-                # If active_tab_index is somehow larger than the list, reset it to 0
-                if active_tab_index >= len(st.session_state.open_chat_tabs):
-                    active_tab_index = 0
-                
-                chat_tabs = st.tabs(st.session_state.open_chat_tabs, key="individual_chat_tabs", index=active_tab_index)
+            for i, chat_partner_name in enumerate(st.session_state.open_chat_tabs):
+                with chat_tabs[i]:
+                    st.markdown(f'<div class="chat-main">', unsafe_allow_html=True)
+                    st.markdown(f'<div class="chat-tab-header">Chat with {chat_partner_name}</div>', unsafe_allow_html=True)
 
-                for i, chat_partner_name in enumerate(st.session_state.open_chat_tabs):
-                    with chat_tabs[i]:
-                        st.markdown(f'<div class="chat-main">', unsafe_allow_html=True)
-                        st.markdown(f'<div class="chat-tab-header">Chat with {chat_partner_name}</div>', unsafe_allow_html=True)
+                    # Filter messages for the specific chat partner in this tab
+                    filtered_messages_df = st.session_state.chat_history_df[
+                        ((st.session_state.chat_history_df['role'] == user_role) &
+                         (st.session_state.chat_history_df['chat_partner'] == chat_partner_name)) |
+                        ((st.session_state.chat_history_df['role'] == chat_partner_name) &
+                         (st.session_state.chat_history_df['chat_partner'] == user_role))
+                    ]
+                    
+                    # Sort by timestamp to display correctly (newest at bottom)
+                    display_messages_df = filtered_messages_df.sort_values(by="timestamp", ascending=True)
 
-                        # Filter messages for the specific chat partner in this tab
-                        filtered_messages_df = st.session_state.chat_history_df[
-                            ((st.session_state.chat_history_df['role'] == user_role) &
-                             (st.session_state.chat_history_df['chat_partner'] == chat_partner_name)) |
-                            ((st.session_state.chat_history_df['role'] == chat_partner_name) &
-                             (st.session_state.chat_history_df['chat_partner'] == user_role))
-                        ]
+                    # Display chat messages
+                    st.markdown('<div class="chat-messages">', unsafe_allow_html=True)
+                    for _, msg_data in display_messages_df.iterrows():
+                        role = str(msg_data.get("role", "Unknown"))
+                        message_content = str(msg_data.get("message", ""))
+                        timestamp = str(msg_data.get("timestamp", ""))
+
+                        is_user_message = (role == user_role)
                         
-                        # Sort by timestamp to display correctly (newest at bottom)
-                        display_messages_df = filtered_messages_df.sort_values(by="timestamp", ascending=True)
-
-                        # Display chat messages
-                        st.markdown('<div class="chat-messages">', unsafe_allow_html=True)
-                        for _, msg_data in display_messages_df.iterrows():
-                            role = str(msg_data.get("role", "Unknown"))
-                            message_content = str(msg_data.get("message", ""))
-                            timestamp = str(msg_data.get("timestamp", ""))
-
-                            is_user_message = (role == user_role)
-                            
-                            st.markdown(f"""
-                            <div class="chat-message-container {'chat-message-user' if is_user_message else 'chat-message-other'}">
-                                <span class="chat-avatar">{"🧑‍💻" if is_user_message else "🏢" if role == "OEM" else "👤"}</span>
-                                <div>
-                                    <strong class="chat-role">{role}</strong> <small class="chat-timestamp">({timestamp})</small><br>
-                                    <div class="chat-text">{message_content}</div>
-                                </div>
+                        st.markdown(f"""
+                        <div class="chat-message-container {'chat-message-user' if is_user_message else 'chat-message-other'}">
+                            <span class="chat-avatar">{"🧑‍💻" if is_user_message else "🏢" if role == "OEM" else "👤"}</span>
+                            <div>
+                                <strong class="chat-role">{role}</strong> <small class="chat-timestamp">({timestamp})</small><br>
+                                <div class="chat-text">{message_content}</div>
                             </div>
-                            """, unsafe_allow_html=True)
-                        st.markdown('</div>', unsafe_allow_html=True) # End chat-messages
+                        </div>
+                        """, unsafe_allow_html=True)
+                    st.markdown('</div>', unsafe_allow_html=True) # End chat-messages
 
-                        # Message input area for the current tab
-                        st.markdown('<div class="chat-input-area">', unsafe_allow_html=True)
-                        
-                        # Use a unique key for each chat input to isolate their state
-                        message_input_key = f"chat_message_input_{chat_partner_name}"
-                        send_button_key = f"send_chat_button_{chat_partner_name}"
+                    # Message input area for the current tab
+                    st.markdown('<div class="chat-input-area">', unsafe_allow_html=True)
+                    
+                    # Use a unique key for each chat input to isolate their state
+                    message_input_key = f"chat_message_input_{chat_partner_name}"
+                    send_button_key = f"send_chat_button_{chat_partner_name}"
 
-                        # Initialize the text input's state for clearing
-                        if message_input_key not in st.session_state:
-                            st.session_state[message_input_key] = ""
+                    # Initialize the text input's state for clearing
+                    if message_input_key not in st.session_state:
+                        st.session_state[message_input_key] = ""
 
-                        message_input = st.text_input(
-                            f"Message {chat_partner_name}", 
-                            value=st.session_state[message_input_key], # Use the session state value
-                            key=message_input_key, 
-                            placeholder="Type your message...", 
-                            label_visibility="collapsed"
-                        )
-                        
-                        if st.button("Send", key=send_button_key):
-                            if message_input:
-                                new_message = {
-                                    "role": user_role,
-                                    "message": message_input,
-                                    "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                                    "chat_partner": chat_partner_name # The recipient of this specific chat
-                                }
-                                append_data(CHAT_FILE, pd.DataFrame([new_message]))
-                                
-                                # Update session state DataFrame
-                                new_message_df = pd.DataFrame([new_message])
-                                st.session_state.chat_history_df = pd.concat([st.session_state.chat_history_df, new_message_df], ignore_index=True)
-                                
-                                # To clear the input box and refresh messages immediately
-                                st.session_state[message_input_key] = "" # Clear the input
-                                st.rerun() 
-                            else:
-                                st.warning("Please type a message before sending.")
-                        st.markdown('</div>', unsafe_allow_html=True) # End chat-input-area
-                        st.markdown('</div>', unsafe_allow_html=True) # End chat-main
+                    message_input = st.text_input(
+                        f"Message {chat_partner_name}", 
+                        value=st.session_state[message_input_key], # Use the session state value
+                        key=message_input_key, 
+                        placeholder="Type your message...", 
+                        label_visibility="collapsed"
+                    )
+                    
+                    if st.button("Send", key=send_button_key):
+                        if message_input:
+                            new_message = {
+                                "role": user_role,
+                                "message": message_input,
+                                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                                "chat_partner": chat_partner_name # The recipient of this specific chat
+                            }
+                            append_data(CHAT_FILE, pd.DataFrame([new_message]))
+                            
+                            # Update session state DataFrame
+                            new_message_df = pd.DataFrame([new_message])
+                            st.session_state.chat_history_df = pd.concat([st.session_state.chat_history_df, new_message_df], ignore_index=True)
+                            
+                            # To clear the input box and refresh messages immediately
+                            st.session_state[message_input_key] = "" # Clear the input
+                            st.rerun() 
+                        else:
+                            st.warning("Please type a message before sending.")
+                    st.markdown('</div>', unsafe_allow_html=True) # End chat-input-area
+                    st.markdown('</div>', unsafe_allow_html=True) # End chat-main
     st.markdown('</div>', unsafe_allow_html=True) # End chat-container-main
 
 # --- Footer ---
