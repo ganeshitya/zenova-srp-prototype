@@ -44,16 +44,16 @@ with tabs[0]:
     st.subheader("🔁 OEM ↔ Supplier Chat")
     
     chat_df = load_chat()
-    for i, row in chat_df.iterrows():
-    role = str(row.get("role", ""))
-    msg = str(row.get("message", ""))
-    ts = str(row.get("timestamp", ""))
-    align = "right" if role == user_role else "left"
-    color = "blue" if role == user_role else "green"
-    st.markdown(
+        for i, row in chat_df.iterrows():
+        role = str(row.get("role", ""))
+        msg = str(row.get("message", ""))
+        ts = str(row.get("timestamp", ""))
+        align = "right" if role == user_role else "left"
+        color = "blue" if role == user_role else "green"
+        st.markdown(
         f"<div style='text-align:{align}; color:{color}; margin-bottom:10px;'><strong>{role}:</strong> {msg} <br><small>{ts}</small></div>",
         unsafe_allow_html=True,
-    )
+        )
 
     message = st.text_input("Type your message", key="chat_input")
 
