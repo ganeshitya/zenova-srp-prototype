@@ -1153,10 +1153,10 @@ with tabs[6]: # Corresponding to "💬 Chat"
             # Display chat partners as selectable list items
             st.markdown('<div class="chat-sidebar">', unsafe_allow_html=True) # Apply CSS class for sidebar
             for partner in all_chat_partners:
-                is_selected = (st.session_state.active_chat_tab == partner)
-                selected_class = " selected" if is_selected else ""
-                
                 # Using st.button for click behavior, styled with markdown/css
+                # Add "selected" class based on whether it's the active tab
+                selected_class = " selected" if st.session_state.active_chat_tab == partner else ""
+                
                 if st.button(
                     f"**{partner}**",
                     key=f"chat_partner_select_{partner}",
@@ -1171,24 +1171,22 @@ with tabs[6]: # Corresponding to "💬 Chat"
 
 
     with chat_col_right:
+        # --- Robust Logic for managing active chat tab ---
+        # 1. Ensure active_chat_tab is valid (is in open_chat_tabs)
+        if st.session_state.active_chat_tab not in st.session_state.open_chat_tabs and st.session_state.open_chat_tabs:
+            st.session_state.active_chat_tab = st.session_state.open_chat_tabs[0]
+        elif not st.session_state.open_chat_tabs: # If no open tabs, set active_chat_tab to None
+            st.session_state.active_chat_tab = None
+
         if not st.session_state.open_chat_tabs:
             st.info("Select a conversation from the left sidebar to open a chat.")
             if user_role.startswith("Supplier") or user_role == "Auditor":
                 st.warning("Note: Suppliers and Auditors can only chat with 'OEM'.")
         else:
-            # Create sub-tabs for each open chat
-            # Ensure the active_chat_tab is one of the open tabs
-            if st.session_state.active_chat_tab not in st.session_state.open_chat_tabs:
-                if st.session_state.open_chat_tabs:
-                    st.session_state.active_chat_tab = st.session_state.open_chat_tabs[0]
-                else:
-                    st.session_state.active_chat_tab = None
-
             # Get the index of the active tab for display
-            active_tab_index = st.session_state.open_chat_tabs.index(st.session_state.active_chat_tab) if st.session_state.active_chat_tab else 0
-            
-            # Add a close button for each tab (optional, for demo simplicity not implemented yet)
-            # You'd need to manage the removal of items from st.session_state.open_chat_tabs
+            active_tab_index = 0 # Default to the first tab
+            if st.session_state.active_chat_tab and st.session_state.active_chat_tab in st.session_state.open_chat_tabs:
+                active_tab_index = st.session_state.open_chat_tabs.index(st.session_state.active_chat_tab)
             
             chat_tabs = st.tabs(st.session_state.open_chat_tabs, key="individual_chat_tabs", index=active_tab_index)
 
@@ -1235,8 +1233,13 @@ with tabs[6]: # Corresponding to "💬 Chat"
                     message_input_key = f"chat_message_input_{chat_partner_name}"
                     send_button_key = f"send_chat_button_{chat_partner_name}"
 
+                    # Initialize the text input's state for clearing
+                    if message_input_key not in st.session_state:
+                        st.session_state[message_input_key] = ""
+
                     message_input = st.text_input(
                         f"Message {chat_partner_name}", 
+                        value=st.session_state[message_input_key], # Use the session state value
                         key=message_input_key, 
                         placeholder="Type your message...", 
                         label_visibility="collapsed"
