@@ -60,8 +60,6 @@ def append_data(file_path, new_entry_df):
     df.to_csv(file_path, index=False)
 
 # --- Initialize CSV Files (without dummy data generation here) ---
-user_roles_list = ["OEM", "Auditor"] # Removed Supplier A/B from generic roles as suppliers now come from supplier_dummy_data.csv
-
 initialize_csv(CHAT_FILE, ["role", "message", "timestamp"])
 initialize_csv(FILES_FILE, ["filename", "type", "size", "uploader", "timestamp", "path"])
 initialize_csv(PROJECTS_FILE, ["task_id", "task_name", "status", "assigned_to", "due_date", "description", "input_pending"])
@@ -81,11 +79,24 @@ initialize_csv(SUPPLIER_DUMMY_DATA_FILE, supplier_columns)
 # --- Sidebar Login ---
 st.sidebar.image("https://www.zenovagroup.com/wp-content/uploads/2023/10/logo.svg", width=200)
 st.sidebar.title("Zenova SRP Login")
-user_roles = ["OEM", "Supplier A", "Supplier B", "Auditor"] # Keep for login
+user_roles = ["OEM", "Supplier A", "Supplier B", "Auditor"]
 user_role = st.sidebar.selectbox("Login as", user_roles, key="user_role_select")
 st.sidebar.success(f"Logged in as {user_role}")
 st.sidebar.markdown("---")
 st.sidebar.markdown(f"**Zenova SRP** - #1 Supplier Resource Planning tool for OEM's.")
+
+# --- Sidebar Navigation ---
+page_titles = [
+    "📊 OEM Dashboard",
+    "👥 Supplier Records", # Moved up for prominence as per a primary function
+    "🛠️ Asset Management",
+    "📅 Project Management",
+    "📋 Audit Management",
+    "📁 File Management",
+    "💬 Chat"
+]
+
+selected_page = st.sidebar.radio("Navigation", page_titles)
 
 
 # --- Initialize Streamlit Session State (Global Scope) ---
@@ -94,20 +105,10 @@ if "chat_history" not in st.session_state:
     st.session_state.chat_history = chat_df.to_dict(orient="records")
 
 
-# --- Main Application Tabs ---
-tab_titles = [
-    "📊 OEM Dashboard",
-    "💬 Chat",
-    "📁 File Management",
-    "📅 Project Management",
-    "🛠️ Asset Management",
-    "📋 Audit Management",
-    "👥 Supplier Records"
-]
-tabs = st.tabs(tab_titles)
+# --- Main Application Content based on Sidebar Selection ---
 
 # --- OEM Dashboard Module ---
-with tabs[0]:
+if selected_page == "📊 OEM Dashboard":
     if user_role != "OEM":
         st.warning("You must be logged in as 'OEM' to view this dashboard.")
     else:
@@ -345,26 +346,205 @@ with tabs[0]:
             st.metric(label="Total Pending Inputs", value=f"{total_pending_input}")
 
 
-# --- Chat Module ---
-with tabs[1]:
-    st.subheader("🔁 Inter-Company Communication Channel")
-    st.markdown("Features: Inter-company communication with Privacy Protection, Encrypted message transfer. *Future: Group chats, email conversion.*")
+# --- Supplier Records Module ---
+elif selected_page == "👥 Supplier Records":
+    st.subheader("👥 Supplier Records")
+    st.markdown("View and manage detailed information about your suppliers.")
 
-    for msg_data in st.session_state.chat_history:
-        role = str(msg_data.get("role", "Unknown"))
-        message_content = str(msg_data.get("message", ""))
-        with st.chat_message(name=role, avatar="🧑‍💻" if role == user_role else "🏢"):
-            st.write(message_content)
+    supplier_df = load_data(SUPPLIER_DUMMY_DATA_FILE, columns=supplier_columns)
 
-    prompt = st.chat_input("Type your message...")
-    if prompt:
-        new_message = {"role": user_role, "message": prompt, "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
-        append_data(CHAT_FILE, pd.DataFrame([new_message]))
-        st.session_state.chat_history.append(new_message)
-        st.rerun()
+    if not supplier_df.empty:
+        st.dataframe(supplier_df, use_container_width=True)
+    else:
+        st.info("No supplier records available. Ensure 'supplier_dummy_data.csv' is in your 'data/' folder.")
+
+    st.markdown("---")
+    st.write("### Add New Supplier Record")
+    with st.expander("Add New Supplier", expanded=False):
+        with st.form("new_supplier_form", clear_on_submit=True):
+            new_supplier_id = st.text_input("Supplier ID (e.g., SUP-006)")
+            new_supplier_name = st.text_input("Supplier Name")
+            new_contact_person = st.text_input("Contact Person")
+            new_email = st.text_input("Email")
+            new_phone = st.text_input("Phone")
+            new_agreement_status = st.selectbox("Agreement Status", ["Active", "Pending Renewal", "Terminated", "On Hold"])
+            new_last_audit_score = st.number_input("Last Audit Score", min_value=0, max_value=100, value=80, key="new_last_audit_score")
+            new_notes = st.text_area("Notes")
+
+            st.markdown("---")
+            st.write("#### Additional Details:")
+            new_primary_product_category = st.text_input("Primary Product Category (e.g., Raw Materials, Electronics)")
+            new_on_time_delivery_rate = st.slider("On-Time Delivery Rate (%)", min_value=0.0, max_value=100.0, value=95.0, step=0.1)
+            new_quality_reject_rate = st.slider("Quality Reject Rate (%)", min_value=0.0, max_value=10.0, value=0.5, step=0.1)
+            new_risk_level = st.selectbox("Risk Level", ["Low", "Medium", "High"])
+            new_certification = st.text_input("Certifications (comma-separated, e.g., ISO 9001, IATF 16949)")
+            new_annual_spend_usd = st.number_input("Annual Spend (USD)", min_value=0, value=100000, step=10000)
+            new_last_performance_review_date = st.date_input("Last Performance Review Date", value=None, key="new_last_performance_review_date")
+
+            supplier_submitted = st.form_submit_button("Add Supplier")
+
+            if supplier_submitted and new_supplier_id and new_supplier_name:
+                new_supplier_entry = {
+                    "supplier_id": new_supplier_id,
+                    "supplier_name": new_supplier_name,
+                    "contact_person": new_contact_person,
+                    "email": new_email,
+                    "phone": new_phone,
+                    "agreement_status": new_agreement_status,
+                    "last_audit_score": new_last_audit_score,
+                    "notes": new_notes,
+                    "primary_product_category": new_primary_product_category,
+                    "on_time_delivery_rate": new_on_time_delivery_rate,
+                    "quality_reject_rate": new_quality_reject_rate,
+                    "risk_level": new_risk_level,
+                    "certification": new_certification,
+                    "annual_spend_usd": new_annual_spend_usd,
+                    "last_performance_review_date": new_last_performance_review_date.strftime("%Y-%m-%d") if new_last_performance_review_date else None
+                }
+                append_data(SUPPLIER_DUMMY_DATA_FILE, pd.DataFrame([new_supplier_entry]))
+                st.success(f"Supplier '{new_supplier_name}' ({new_supplier_id}) added successfully!")
+                st.rerun()
+            elif supplier_submitted:
+                st.error("Supplier ID and Supplier Name are required.")
+
+# --- Asset Management Module ---
+elif selected_page == "🛠️ Asset Management":
+    st.subheader("🔧 Inter-Company Asset Management")
+    st.markdown("Features: Log of assets, Manage EOL/Calibration, Assess inventory/scrap cost, Audit framework. *Future: Auto asset numbering, Cost analysis.*")
+
+    # Load supplier data for the dropdown
+    supplier_df_for_selection = load_data(SUPPLIER_DUMMY_DATA_FILE, columns=["supplier_name"])
+    supplier_names_for_dropdown = supplier_df_for_selection['supplier_name'].tolist()
+    if not supplier_names_for_dropdown:
+        supplier_names_for_dropdown = ["N/A (No suppliers found)"] # Fallback if supplier file is empty
+
+    with st.expander("Add New Asset", expanded=False):
+        with st.form("new_asset_form", clear_on_submit=True):
+            asset_id_val = st.text_input("Asset ID (e.g., ZNV-TOOL-001)", key="asset_id_input")
+            asset_name = st.text_input("Asset Name/Description")
+            location = st.selectbox("Location", ["OEM Site", "Supplier A Facility", "Supplier B Warehouse", "In Transit"])
+            asset_status_options = ["In Use", "In Storage", "Under Maintenance", "Awaiting Calibration", "End of Life (EOL)", "Scrapped"]
+            asset_status = st.selectbox("Status", asset_status_options)
+            # Use actual supplier names for asset assignment
+            asset_supplier = st.selectbox("Supplier", supplier_names_for_dropdown)
+            eol_date = st.date_input("End of Life (EOL) Date", value=None, key="eol_date_asset")
+            calibration_date = st.date_input("Next Calibration Date", value=None, key="cal_date_asset")
+            notes = st.text_area("Notes/Comments")
+            asset_submitted = st.form_submit_button("Add Asset")
+
+            if asset_submitted and asset_id_val and asset_name:
+                new_asset = {
+                    "asset_id": asset_id_val,
+                    "asset_name": asset_name,
+                    "location": location,
+                    "status": asset_status,
+                    "eol_date": eol_date.strftime("%Y-%m-%d") if eol_date else None,
+                    "calibration_date": calibration_date.strftime("%Y-%m-%d") if calibration_date else None,
+                    "notes": notes,
+                    "supplier": asset_supplier
+                }
+                append_data(ASSETS_FILE, pd.DataFrame([new_asset]))
+                st.success(f"Asset '{asset_name}' ({asset_id_val}) added successfully!")
+                st.rerun()
+            elif asset_submitted:
+                st.error("Asset ID and Asset Name are required.")
+
+    st.markdown("---")
+    st.subheader("Asset Inventory Log")
+    assets_df = load_data(ASSETS_FILE)
+    if not assets_df.empty:
+        st.dataframe(assets_df, use_container_width=True)
+    else:
+        st.info("No assets logged yet. Add assets using the 'Add New Asset' expander above.")
+
+
+# --- Project Management Module (Gantt) ---
+elif selected_page == "📅 Project Management":
+    st.subheader("📊 Project Management Tool with Gantt View")
+    st.markdown("Features: Gantt view with milestones, Task dashboard (Open/WIP/Closed), Critical path notifications. *Future: Interactive Gantt, Email reminders.*")
+
+    with st.expander("Add New Project Task", expanded=False):
+        with st.form("new_task_form", clear_on_submit=True):
+            task_id = f"TASK-{int(datetime.now().timestamp())}"
+            task_name = st.text_input("Task Name")
+            description = st.text_area("Task Description")
+            status_options = ["Open", "Work In Progress", "Blocked", "Pending Review", "Closed"]
+            status = st.selectbox("Status", status_options)
+            assigned_to = st.selectbox("Assigned To", user_roles + ["Unassigned"])
+            due_date = st.date_input("Due Date", min_value=datetime.today())
+            input_pending_status = st.checkbox("Requires Input?", value=False)
+            submitted = st.form_submit_button("Add Task")
+
+            if submitted and task_name:
+                new_task = {
+                    "task_id": task_id,
+                    "task_name": task_name,
+                    "status": status,
+                    "assigned_to": assigned_to,
+                    "due_date": due_date.strftime("%Y-%m-%d"),
+                    "description": description,
+                    "input_pending": "Yes" if input_pending_status else "No"
+                }
+                append_data(PROJECTS_FILE, pd.DataFrame([new_task]))
+                st.success(f"Task '{task_name}' added successfully!")
+                st.rerun()
+            elif submitted:
+                st.error("Task Name is required.")
+
+    st.markdown("---")
+    st.subheader("Current Project Tasks")
+    projects_df = load_data(PROJECTS_FILE)
+    if not projects_df.empty:
+        st.dataframe(projects_df, use_container_width=True)
+        st.info("💡 Tip: A full Gantt chart requires a visualization library like Plotly. This table shows task data.")
+    else:
+        st.info("No project tasks added yet. Add tasks using the 'Add New Project Task' expander above.")
+
+
+# --- Audit Management Module ---
+elif selected_page == "📋 Audit Management":
+    st.subheader("🔍 Supplier Assessment Report & Actions Tracking")
+    st.markdown("Features: Assessment management, Tracking open points with reminders, Third-party audit scores access, Deviation management. *Future: Reminder system, Score integration.*")
+
+    with st.expander("Add New Audit Point / Finding", expanded=False):
+        with st.form("new_audit_point_form", clear_on_submit=True):
+            audit_id_val = f"AUDIT-{int(datetime.now().timestamp())}"
+            point_description = st.text_area("Audit Point/Finding Description")
+            audit_status_options = ["Open", "In Progress", "Resolved", "Pending Verification", "Closed", "Deviation Accepted"]
+            audit_status = st.selectbox("Status", audit_status_options)
+            assignee = st.selectbox("Assignee", user_roles + ["Cross-functional Team"])
+            due_date_audit = st.date_input("Due Date for Resolution", min_value=datetime.today(), key="due_date_audit")
+            resolution = st.text_area("Resolution / Corrective Action")
+            input_pending_audit = st.checkbox("Requires Input from Stakeholders?", value=False)
+            audit_submitted = st.form_submit_button("Add Audit Point")
+
+            if audit_submitted and point_description:
+                new_audit_point = {
+                    "audit_id": audit_id_val,
+                    "point_description": point_description,
+                    "status": audit_status,
+                    "assignee": assignee,
+                    "due_date": due_date_audit.strftime("%Y-%m-%d"),
+                    "resolution": resolution,
+                    "input_pending": "Yes" if input_pending_audit else "No"
+                }
+                append_data(AUDITS_FILE, pd.DataFrame([new_audit_point]))
+                st.success(f"Audit point '{audit_id_val}' added successfully!")
+                st.rerun()
+            elif audit_submitted:
+                st.error("Audit Point Description is required.")
+
+    st.markdown("---")
+    st.subheader("Audit Records & Open Points")
+    audits_df = load_data(AUDITS_FILE)
+    if not audits_df.empty:
+        st.dataframe(audits_df, use_container_width=True)
+    else:
+        st.info("No audit points recorded yet. Add audit points using the 'Add New Audit Point / Finding' expander above.")
+
 
 # --- File Management Module ---
-with tabs[2]:
+elif selected_page == "📁 File Management":
     st.subheader("🔒 Secured File Management & Version Control")
     st.markdown("Features: Encrypted cloud file transfer, Preview (PDF/Office), Permissions, Sharing/Download history. *Future: Version control, Auto-grouping.*")
 
@@ -433,199 +613,23 @@ with tabs[2]:
     else:
         st.info("No files uploaded yet.")
 
-# --- Project Management Module (Gantt) ---
-with tabs[3]:
-    st.subheader("📊 Project Management Tool with Gantt View")
-    st.markdown("Features: Gantt view with milestones, Task dashboard (Open/WIP/Closed), Critical path notifications. *Future: Interactive Gantt, Email reminders.*")
+# --- Chat Module ---
+elif selected_page == "💬 Chat":
+    st.subheader("🔁 Inter-Company Communication Channel")
+    st.markdown("Features: Inter-company communication with Privacy Protection, Encrypted message transfer. *Future: Group chats, email conversion.*")
 
-    with st.expander("Add New Project Task", expanded=False):
-        with st.form("new_task_form", clear_on_submit=True):
-            task_id = f"TASK-{int(datetime.now().timestamp())}"
-            task_name = st.text_input("Task Name")
-            description = st.text_area("Task Description")
-            status_options = ["Open", "Work In Progress", "Blocked", "Pending Review", "Closed"]
-            status = st.selectbox("Status", status_options)
-            assigned_to = st.selectbox("Assigned To", user_roles + ["Unassigned"])
-            due_date = st.date_input("Due Date", min_value=datetime.today())
-            input_pending_status = st.checkbox("Requires Input?", value=False)
-            submitted = st.form_submit_button("Add Task")
+    for msg_data in st.session_state.chat_history:
+        role = str(msg_data.get("role", "Unknown"))
+        message_content = str(msg_data.get("message", ""))
+        with st.chat_message(name=role, avatar="🧑‍💻" if role == user_role else "🏢"):
+            st.write(message_content)
 
-            if submitted and task_name:
-                new_task = {
-                    "task_id": task_id,
-                    "task_name": task_name,
-                    "status": status,
-                    "assigned_to": assigned_to,
-                    "due_date": due_date.strftime("%Y-%m-%d"),
-                    "description": description,
-                    "input_pending": "Yes" if input_pending_status else "No"
-                }
-                append_data(PROJECTS_FILE, pd.DataFrame([new_task]))
-                st.success(f"Task '{task_name}' added successfully!")
-                st.rerun()
-            elif submitted:
-                st.error("Task Name is required.")
-
-    st.markdown("---")
-    st.subheader("Current Project Tasks")
-    projects_df = load_data(PROJECTS_FILE)
-    if not projects_df.empty:
-        st.dataframe(projects_df, use_container_width=True)
-        st.info("💡 Tip: A full Gantt chart requires a visualization library like Plotly. This table shows task data.")
-    else:
-        st.info("No project tasks added yet. Add tasks using the 'Add New Project Task' expander above.")
-
-# --- Asset Management Module ---
-with tabs[4]:
-    st.subheader("🔧 Inter-Company Asset Management")
-    st.markdown("Features: Log of assets, Manage EOL/Calibration, Assess inventory/scrap cost, Audit framework. *Future: Auto asset numbering, Cost analysis.*")
-
-    # Load supplier data for the dropdown
-    supplier_df_for_selection = load_data(SUPPLIER_DUMMY_DATA_FILE, columns=["supplier_name"])
-    supplier_names_for_dropdown = supplier_df_for_selection['supplier_name'].tolist()
-    if not supplier_names_for_dropdown:
-        supplier_names_for_dropdown = ["N/A (No suppliers found)"] # Fallback if supplier file is empty
-
-    with st.expander("Add New Asset", expanded=False):
-        with st.form("new_asset_form", clear_on_submit=True):
-            asset_id_val = st.text_input("Asset ID (e.g., ZNV-TOOL-001)", key="asset_id_input")
-            asset_name = st.text_input("Asset Name/Description")
-            location = st.selectbox("Location", ["OEM Site", "Supplier A Facility", "Supplier B Warehouse", "In Transit"])
-            asset_status_options = ["In Use", "In Storage", "Under Maintenance", "Awaiting Calibration", "End of Life (EOL)", "Scrapped"]
-            asset_status = st.selectbox("Status", asset_status_options)
-            # Use actual supplier names for asset assignment
-            asset_supplier = st.selectbox("Supplier", supplier_names_for_dropdown)
-            eol_date = st.date_input("End of Life (EOL) Date", value=None, key="eol_date_asset")
-            calibration_date = st.date_input("Next Calibration Date", value=None, key="cal_date_asset")
-            notes = st.text_area("Notes/Comments")
-            asset_submitted = st.form_submit_button("Add Asset")
-
-            if asset_submitted and asset_id_val and asset_name:
-                new_asset = {
-                    "asset_id": asset_id_val,
-                    "asset_name": asset_name,
-                    "location": location,
-                    "status": asset_status,
-                    "eol_date": eol_date.strftime("%Y-%m-%d") if eol_date else None,
-                    "calibration_date": calibration_date.strftime("%Y-%m-%d") if calibration_date else None,
-                    "notes": notes,
-                    "supplier": asset_supplier
-                }
-                append_data(ASSETS_FILE, pd.DataFrame([new_asset]))
-                st.success(f"Asset '{asset_name}' ({asset_id_val}) added successfully!")
-                st.rerun()
-            elif asset_submitted:
-                st.error("Asset ID and Asset Name are required.")
-
-    st.markdown("---")
-    st.subheader("Asset Inventory Log")
-    assets_df = load_data(ASSETS_FILE)
-    if not assets_df.empty:
-        st.dataframe(assets_df, use_container_width=True)
-    else:
-        st.info("No assets logged yet. Add assets using the 'Add New Asset' expander above.")
-
-# --- Audit Management Module ---
-with tabs[5]:
-    st.subheader("🔍 Supplier Assessment Report & Actions Tracking")
-    st.markdown("Features: Assessment management, Tracking open points with reminders, Third-party audit scores access, Deviation management. *Future: Reminder system, Score integration.*")
-
-    with st.expander("Add New Audit Point / Finding", expanded=False):
-        with st.form("new_audit_point_form", clear_on_submit=True):
-            audit_id_val = f"AUDIT-{int(datetime.now().timestamp())}"
-            point_description = st.text_area("Audit Point/Finding Description")
-            audit_status_options = ["Open", "In Progress", "Resolved", "Pending Verification", "Closed", "Deviation Accepted"]
-            audit_status = st.selectbox("Status", audit_status_options)
-            assignee = st.selectbox("Assignee", user_roles + ["Cross-functional Team"])
-            due_date_audit = st.date_input("Due Date for Resolution", min_value=datetime.today(), key="due_date_audit")
-            resolution = st.text_area("Resolution / Corrective Action")
-            input_pending_audit = st.checkbox("Requires Input from Stakeholders?", value=False)
-            audit_submitted = st.form_submit_button("Add Audit Point")
-
-            if audit_submitted and point_description:
-                new_audit_point = {
-                    "audit_id": audit_id_val,
-                    "point_description": point_description,
-                    "status": audit_status,
-                    "assignee": assignee,
-                    "due_date": due_date_audit.strftime("%Y-%m-%d"),
-                    "resolution": resolution,
-                    "input_pending": "Yes" if input_pending_audit else "No"
-                }
-                append_data(AUDITS_FILE, pd.DataFrame([new_audit_point]))
-                st.success(f"Audit point '{audit_id_val}' added successfully!")
-                st.rerun()
-            elif audit_submitted:
-                st.error("Audit Point Description is required.")
-
-    st.markdown("---")
-    st.subheader("Audit Records & Open Points")
-    audits_df = load_data(AUDITS_FILE)
-    if not audits_df.empty:
-        st.dataframe(audits_df, use_container_width=True)
-    else:
-        st.info("No audit points recorded yet. Add audit points using the 'Add New Audit Point / Finding' expander above.")
-
-# --- Supplier Records Module ---
-with tabs[6]:
-    st.subheader("👥 Supplier Records")
-    st.markdown("View and manage detailed information about your suppliers.")
-
-    supplier_df = load_data(SUPPLIER_DUMMY_DATA_FILE, columns=supplier_columns)
-
-    if not supplier_df.empty:
-        st.dataframe(supplier_df, use_container_width=True)
-    else:
-        st.info("No supplier records available. Ensure 'supplier_dummy_data.csv' is in your 'data/' folder.")
-
-    st.markdown("---")
-    st.write("### Add New Supplier Record")
-    with st.expander("Add New Supplier", expanded=False):
-        with st.form("new_supplier_form", clear_on_submit=True):
-            new_supplier_id = st.text_input("Supplier ID (e.g., SUP-006)")
-            new_supplier_name = st.text_input("Supplier Name")
-            new_contact_person = st.text_input("Contact Person")
-            new_email = st.text_input("Email")
-            new_phone = st.text_input("Phone")
-            new_agreement_status = st.selectbox("Agreement Status", ["Active", "Pending Renewal", "Terminated", "On Hold"])
-            new_last_audit_score = st.number_input("Last Audit Score", min_value=0, max_value=100, value=80, key="new_last_audit_score")
-            new_notes = st.text_area("Notes")
-
-            st.markdown("---")
-            st.write("#### Additional Details:")
-            new_primary_product_category = st.text_input("Primary Product Category (e.g., Raw Materials, Electronics)")
-            new_on_time_delivery_rate = st.slider("On-Time Delivery Rate (%)", min_value=0.0, max_value=100.0, value=95.0, step=0.1)
-            new_quality_reject_rate = st.slider("Quality Reject Rate (%)", min_value=0.0, max_value=10.0, value=0.5, step=0.1)
-            new_risk_level = st.selectbox("Risk Level", ["Low", "Medium", "High"])
-            new_certification = st.text_input("Certifications (comma-separated, e.g., ISO 9001, IATF 16949)")
-            new_annual_spend_usd = st.number_input("Annual Spend (USD)", min_value=0, value=100000, step=10000)
-            new_last_performance_review_date = st.date_input("Last Performance Review Date", value=None, key="new_last_performance_review_date")
-
-            supplier_submitted = st.form_submit_button("Add Supplier")
-
-            if supplier_submitted and new_supplier_id and new_supplier_name:
-                new_supplier_entry = {
-                    "supplier_id": new_supplier_id,
-                    "supplier_name": new_supplier_name,
-                    "contact_person": new_contact_person,
-                    "email": new_email,
-                    "phone": new_phone,
-                    "agreement_status": new_agreement_status,
-                    "last_audit_score": new_last_audit_score,
-                    "notes": new_notes,
-                    "primary_product_category": new_primary_product_category,
-                    "on_time_delivery_rate": new_on_time_delivery_rate,
-                    "quality_reject_rate": new_quality_reject_rate,
-                    "risk_level": new_risk_level,
-                    "certification": new_certification,
-                    "annual_spend_usd": new_annual_spend_usd,
-                    "last_performance_review_date": new_last_performance_review_date.strftime("%Y-%m-%d") if new_last_performance_review_date else None
-                }
-                append_data(SUPPLIER_DUMMY_DATA_FILE, pd.DataFrame([new_supplier_entry]))
-                st.success(f"Supplier '{new_supplier_name}' ({new_supplier_id}) added successfully!")
-                st.rerun()
-            elif supplier_submitted:
-                st.error("Supplier ID and Supplier Name are required.")
+    prompt = st.chat_input("Type your message...")
+    if prompt:
+        new_message = {"role": user_role, "message": prompt, "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+        append_data(CHAT_FILE, pd.DataFrame([new_message]))
+        st.session_state.chat_history.append(new_message)
+        st.rerun()
 
 
 st.sidebar.markdown("---")
