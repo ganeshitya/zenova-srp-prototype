@@ -44,7 +44,7 @@ with tabs[0]:
     st.subheader("🔁 OEM ↔ Supplier Chat")
     
     chat_df = load_chat()
-        for i, row in chat_df.iterrows():
+    for i, row in chat_df.iterrows():
         role = str(row.get("role", ""))
         msg = str(row.get("message", ""))
         ts = str(row.get("timestamp", ""))
