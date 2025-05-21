@@ -482,7 +482,11 @@ tab_titles = [
     "📁 File Management",
     "💬 Chat"
 ]
-
+if "open_chat_tabs" in st.session_state and st.session_state.open_chat_tabs:
+    active_tab_index = min(active_tab_index, len(st.session_state.open_chat_tabs) - 1)
+    chat_tabs = st.tabs(st.session_state.open_chat_tabs, key="individual_chat_tabs", index=active_tab_index)
+else:
+    st.warning("No open chat tabs to display.")
 # Create horizontal tabs
 tabs = st.tabs(tab_titles)
 
