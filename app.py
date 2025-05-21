@@ -27,7 +27,7 @@ def load_data(file_path, columns=None):
             return pd.read_csv(file_path)
         except pd.errors.EmptyDataError:
             if columns:
-                 return pd.DataFrame(columns=columns)
+                return pd.DataFrame(columns=columns)
             return pd.DataFrame()
     elif columns:
         return pd.DataFrame(columns=columns)
@@ -42,9 +42,8 @@ def append_data(file_path, new_entry_df):
 initialize_csv(CHAT_FILE, ["role", "message", "timestamp"])
 initialize_csv(FILES_FILE, ["filename", "type", "size", "uploader", "timestamp"])
 initialize_csv(PROJECTS_FILE, ["task_id", "task_name", "status", "assigned_to", "due_date", "description"])
-initialize_csv(ASSETS_FILE, ["asset_id", "asset_name", "location", "status", "eol_date", "calibration_date", "notes"]) # [cite: 5, 6]
-initialize_csv(AUDITS_FILE, ["audit_id", "point_description", "status", "assignee", "due_date", "resolution"]) # [cite: 5, 7]
-
+initialize_csv(ASSETS_FILE, ["asset_id", "asset_name", "location", "status", "eol_date", "calibration_date", "notes"])
+initialize_csv(AUDITS_FILE, ["audit_id", "point_description", "status", "assignee", "due_date", "resolution"])
 
 # --- Sidebar Login ---
 st.sidebar.image("https://www.zenovagroup.com/wp-content/uploads/2023/10/logo.svg", width=200) # Placeholder for Zenova logo
@@ -53,33 +52,34 @@ user_roles = ["OEM", "Supplier A", "Supplier B", "Auditor"] # Expanded roles for
 user_role = st.sidebar.selectbox("Login as", user_roles, key="user_role_select")
 st.sidebar.success(f"Logged in as {user_role}")
 st.sidebar.markdown("---")
-st.sidebar.markdown(f"**Zenova SRP** - #1 Supplier Resource Planning tool for OEM's. [cite: 1, 3]")
+st.sidebar.markdown(f"**Zenova SRP** - #1 Supplier Resource Planning tool for OEM's.")
 
+# --- Initialize Streamlit Session State (Global Scope) ---
+# It's best practice to initialize session state variables at the beginning of the script
+# to ensure they are available on all reruns.
+if "chat_history" not in st.session_state:
+    chat_df = load_data(CHAT_FILE, columns=["role", "message", "timestamp"])
+    st.session_state.chat_history = chat_df.to_dict(orient="records")
 
 # --- Main Application Tabs ---
 tab_titles = [
     "💬 Chat",
     "📁 File Management",
     "📅 Project Management",
-    "🛠️ Asset Management", # [cite: 4]
-    "📋 Audit Management"  # [cite: 4]
+    "🛠️ Asset Management",
+    "📋 Audit Management"
 ]
 tabs = st.tabs(tab_titles)
 
 # --- Chat Module ---
 with tabs[0]:
-    st.subheader("🔁 Inter-Company Communication Channel") # [cite: 2]
-    st.markdown("Features: Inter-company communication with Privacy Protection, Encrypted message transfer. *Future: Group chats, email conversion.*") # [cite: 5]
+    st.subheader("🔁 Inter-Company Communication Channel")
+    st.markdown("Features: Inter-company communication with Privacy Protection, Encrypted message transfer. *Future: Group chats, email conversion.*")
 
-    # Load chat history
-    chat_df = load_data(CHAT_FILE, columns=["role", "message", "timestamp"])
-    st.session_state.chat_history = chat_df.to_dict(orient="records")
-
-    # Display chat messages
+    # Display chat messages (now using the globally initialized session_state)
     for msg_data in st.session_state.chat_history:
         role = str(msg_data.get("role", "Unknown"))
         message_content = str(msg_data.get("message", ""))
-        # timestamp = str(msg_data.get("timestamp", "")) # Can be added if desired
         with st.chat_message(name=role, avatar="🧑‍💻" if role == user_role else "🏢"):
             st.write(message_content)
 
@@ -88,12 +88,14 @@ with tabs[0]:
     if prompt:
         new_message = {"role": user_role, "message": prompt, "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
         append_data(CHAT_FILE, pd.DataFrame([new_message]))
-        st.rerun()
+        # Update session state directly after appending to file for immediate display
+        st.session_state.chat_history.append(new_message)
+        st.rerun() # Rerun to display the new message and clear the input
 
 # --- File Management Module ---
 with tabs[1]:
-    st.subheader("🔒 Secured File Management & Version Control") # [cite: 2]
-    st.markdown("Features: Encrypted cloud file transfer, Preview (PDF/Office), Permissions, Sharing/Download history. *Future: Version control, Auto-grouping.*") # [cite: 5]
+    st.subheader("🔒 Secured File Management & Version Control")
+    st.markdown("Features: Encrypted cloud file transfer, Preview (PDF/Office), Permissions, Sharing/Download history. *Future: Version control, Auto-grouping.*")
 
     uploaded_file = st.file_uploader("Upload a file", type=["pdf", "docx", "xlsx", "txt", "png", "jpg"], key="file_uploader")
 
@@ -111,12 +113,10 @@ with tabs[1]:
         # Basic preview for some types
         if uploaded_file.type == "application/pdf":
             st.info("PDF Preview (first page will require a library like PyMuPDF or pdf2image for full preview)")
-            # For a real preview, you might need to save to a temp file and use st.image or a component
         elif "image" in uploaded_file.type:
             st.image(uploaded_file, caption=f"Preview of {uploaded_file.name}", use_column_width=True)
         else:
             st.write("Preview not available for this file type in this demo.")
-
 
     st.markdown("---")
     st.subheader("Uploaded Files History")
@@ -128,8 +128,8 @@ with tabs[1]:
 
 # --- Project Management Module (Gantt) ---
 with tabs[2]:
-    st.subheader("📊 Project Management Tool with Gantt View") # [cite: 2, 4]
-    st.markdown("Features: Gantt view with milestones, Task dashboard (Open/WIP/Closed), Critical path notifications. *Future: Interactive Gantt, Email reminders.*") # [cite: 5]
+    st.subheader("📊 Project Management Tool with Gantt View")
+    st.markdown("Features: Gantt view with milestones, Task dashboard (Open/WIP/Closed), Critical path notifications. *Future: Interactive Gantt, Email reminders.*")
 
     with st.expander("Add New Project Task", expanded=False):
         with st.form("new_task_form", clear_on_submit=True):
@@ -138,7 +138,7 @@ with tabs[2]:
             description = st.text_area("Task Description")
             status_options = ["Open", "Work In Progress", "Blocked", "Pending Review", "Closed"]
             status = st.selectbox("Status", status_options)
-            assigned_to = st.selectbox("Assigned To", user_roles + ["Unassigned"]) # [cite: 8] example users
+            assigned_to = st.selectbox("Assigned To", user_roles + ["Unassigned"])
             due_date = st.date_input("Due Date", min_value=datetime.today())
             submitted = st.form_submit_button("Add Task")
 
@@ -153,33 +153,29 @@ with tabs[2]:
                 }
                 append_data(PROJECTS_FILE, pd.DataFrame([new_task]))
                 st.success(f"Task '{task_name}' added successfully!")
-                st.rerun() # Refresh to show updated table and clear form implicitly
+                st.rerun()
             elif submitted:
                 st.error("Task Name is required.")
-
 
     st.markdown("---")
     st.subheader("Current Project Tasks")
     projects_df = load_data(PROJECTS_FILE)
     if not projects_df.empty:
-        # Allow basic editing for status (if desired, st.data_editor could be used here)
         st.dataframe(projects_df, use_container_width=True)
-        # For a Gantt chart visualization, you'd typically use Plotly:
-        # Example: st.plotly_chart(create_gantt_chart(projects_df))
         st.info("💡 Tip: A full Gantt chart requires a visualization library like Plotly. This table shows task data.")
     else:
         st.info("No project tasks added yet.")
 
 # --- Asset Management Module ---
 with tabs[3]:
-    st.subheader("🔧 Inter-Company Asset Management") # [cite: 2]
-    st.markdown("Features: Log of assets, Manage EOL/Calibration, Assess inventory/scrap cost, Audit framework. *Future: Auto asset numbering, Cost analysis.*") # [cite: 5, 6]
+    st.subheader("🔧 Inter-Company Asset Management")
+    st.markdown("Features: Log of assets, Manage EOL/Calibration, Assess inventory/scrap cost, Audit framework. *Future: Auto asset numbering, Cost analysis.*")
 
     with st.expander("Add New Asset", expanded=False):
         with st.form("new_asset_form", clear_on_submit=True):
-            asset_id_val = st.text_input("Asset ID (e.g., ZNV-TOOL-001)", key="asset_id_input") # [cite: 6] (auto assign mentioned)
+            asset_id_val = st.text_input("Asset ID (e.g., ZNV-TOOL-001)", key="asset_id_input")
             asset_name = st.text_input("Asset Name/Description")
-            location = st.selectbox("Location", ["OEM Site", "Supplier A Facility", "Supplier B Warehouse", "In Transit"]) # [cite: 5]
+            location = st.selectbox("Location", ["OEM Site", "Supplier A Facility", "Supplier B Warehouse", "In Transit"])
             asset_status_options = ["In Use", "In Storage", "Under Maintenance", "Awaiting Calibration", "End of Life (EOL)", "Scrapped"]
             asset_status = st.selectbox("Status", asset_status_options)
             eol_date = st.date_input("End of Life (EOL) Date", value=None, key="eol_date_asset")
@@ -204,7 +200,7 @@ with tabs[3]:
                 st.error("Asset ID and Asset Name are required.")
 
     st.markdown("---")
-    st.subheader("Asset Inventory Log") # [cite: 5]
+    st.subheader("Asset Inventory Log")
     assets_df = load_data(ASSETS_FILE)
     if not assets_df.empty:
         st.dataframe(assets_df, use_container_width=True)
@@ -213,14 +209,14 @@ with tabs[3]:
 
 # --- Audit Management Module ---
 with tabs[4]:
-    st.subheader("🔍 Supplier Assessment Report & Actions Tracking") # [cite: 2, 7]
-    st.markdown("Features: Assessment management, Tracking open points with reminders, Third-party audit scores access, Deviation management. *Future: Reminder system, Score integration.*") # [cite: 5, 7]
+    st.subheader("🔍 Supplier Assessment Report & Actions Tracking")
+    st.markdown("Features: Assessment management, Tracking open points with reminders, Third-party audit scores access, Deviation management. *Future: Reminder system, Score integration.*")
 
     with st.expander("Add New Audit Point / Finding", expanded=False):
         with st.form("new_audit_point_form", clear_on_submit=True):
-            audit_id_val = f"AUDIT-{int(datetime.now().timestamp())}" # Simple unique ID
+            audit_id_val = f"AUDIT-{int(datetime.now().timestamp())}"
             point_description = st.text_area("Audit Point/Finding Description")
-            audit_status_options = ["Open", "In Progress", "Resolved", "Pending Verification", "Closed", "Deviation Accepted"] # [cite: 5] (deviation management)
+            audit_status_options = ["Open", "In Progress", "Resolved", "Pending Verification", "Closed", "Deviation Accepted"]
             audit_status = st.selectbox("Status", audit_status_options)
             assignee = st.selectbox("Assignee", user_roles + ["Cross-functional Team"])
             due_date_audit = st.date_input("Due Date for Resolution", min_value=datetime.today(), key="due_date_audit")
@@ -243,7 +239,7 @@ with tabs[4]:
                 st.error("Audit Point Description is required.")
 
     st.markdown("---")
-    st.subheader("Audit Records & Open Points") # [cite: 5]
+    st.subheader("Audit Records & Open Points")
     audits_df = load_data(AUDITS_FILE)
     if not audits_df.empty:
         st.dataframe(audits_df, use_container_width=True)
