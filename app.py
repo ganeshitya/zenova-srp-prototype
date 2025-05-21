@@ -16,158 +16,38 @@ PROJECTS_FILE = os.path.join(DATA_DIR, "project_tasks.csv")
 ASSETS_FILE = os.path.join(DATA_DIR, "assets.csv")
 AUDITS_FILE = os.path.join(DATA_DIR, "audit_points.csv")
 SUPPLIER_RECORDS_DIR = os.path.join(DATA_DIR, "supplier_records")
-SUPPLIER_DUMMY_DATA_FILE = os.path.join(DATA_DIR, "supplier_dummy_data.csv")
+SUPPLIER_DUMMY_DATA_FILE = os.path.join(DATA_DIR, "supplier_dummy_data.csv") # New: Supplier Dummy Data File
 
 os.makedirs(DATA_DIR, exist_ok=True)
 os.makedirs(SUPPLIER_RECORDS_DIR, exist_ok=True)
 
 # --- Helper Functions for Data Handling ---
 def initialize_csv(file_path, columns):
+    """Initializes a CSV file with headers if it doesn't exist or is empty."""
     if not os.path.exists(file_path) or os.path.getsize(file_path) == 0:
         pd.DataFrame(columns=columns).to_csv(file_path, index=False)
 
-def create_dummy_data(file_path, columns, data_type, user_roles):
-    """Generates dummy data if the CSV is empty."""
-    if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
-        return
-
-    st.info(f"Creating dummy data for {os.path.basename(file_path)}...")
-
-    if data_type == "chat":
-        dummy_entries = [
-            {"role": "OEM", "message": "Welcome to Zenova SRP!", "timestamp": (datetime.now() - timedelta(days=5)).strftime("%Y-%m-%d %H:%M:%S")},
-            {"role": "Supplier A", "message": "Good morning OEM, checking in on the latest project updates.", "timestamp": (datetime.now() - timedelta(days=4, hours=2)).strftime("%Y-%m-%d %H:%M:%S")},
-            {"role": "OEM", "message": "Project Alpha is progressing well. Task #TA-001 is awaiting your input.", "timestamp": (datetime.now() - timedelta(days=3, hours=5)).strftime("%Y-%m-%d %H:%M:%S")},
-            {"role": "Supplier B", "message": "Asset AC-003 is due for calibration next week. Noted.", "timestamp": (datetime.now() - timedelta(days=2, hours=10)).strftime("%Y-%m-%d %H:%M:%S")},
-            {"role": "Auditor", "message": "Initial audit for Q1 findings have been uploaded to file management.", "timestamp": (datetime.now() - timedelta(days=1, hours=1)).strftime("%Y-%m-%d %H:%M:%S")},
-        ]
-    elif data_type == "project":
-        project_statuses = ["Open", "Work In Progress", "Blocked", "Pending Review", "Closed"]
-        dummy_entries = []
-        for i in range(1, 16):
-            status = np.random.choice(project_statuses, p=[0.3, 0.4, 0.1, 0.1, 0.1])
-            assigned_to = np.random.choice(user_roles + ["Unassigned"])
-            due_date = (datetime.today() + timedelta(days=np.random.randint(-10, 30))).strftime("%Y-%m-%d")
-            input_pending = "Yes" if np.random.rand() < 0.2 and status == "Open" else "No"
-            dummy_entries.append({
-                "task_id": f"TA-{i:03d}",
-                "task_name": f"Project Task {i}: " + np.random.choice(["Review designs", "Procure materials", "Assembly line setup", "Quality check", "Logistics coordination", "Documentation"]),
-                "status": status,
-                "assigned_to": assigned_to,
-                "due_date": due_date,
-                "description": f"Details for task {i}.",
-                "input_pending": input_pending
-            })
-    elif data_type == "asset":
-        asset_statuses = ["In Use", "In Storage", "Under Maintenance", "Awaiting Calibration", "End of Life (EOL)", "Scrapped"]
-        asset_locations = ["OEM Site", "Supplier A Facility", "Supplier B Warehouse", "In Transit"]
-        suppliers = ["Supplier A", "Supplier B"]
-        dummy_entries = []
-        for i in range(1, 21):
-            supplier = np.random.choice(suppliers)
-            eol_date = (datetime.today() + timedelta(days=np.random.randint(30, 365 * 3))).strftime("%Y-%m-%d") if np.random.rand() > 0.3 else None
-            calibration_date = (datetime.today() + timedelta(days=np.random.randint(15, 180))).strftime("%Y-%m-%d") if np.random.rand() > 0.4 else None
-            dummy_entries.append({
-                "asset_id": f"AC-{i:03d}",
-                "asset_name": np.random.choice(["CNC Machine", "3D Printer", "Assembly Robot", "Inspection Jig", "Material Handler", "Test Equipment"]),
-                "location": np.random.choice(asset_locations),
-                "status": np.random.choice(asset_statuses, p=[0.4, 0.2, 0.1, 0.1, 0.1, 0.1]),
-                "eol_date": eol_date,
-                "calibration_date": calibration_date,
-                "notes": f"Asset {i} general notes.",
-                "supplier": supplier
-            })
-    elif data_type == "audit":
-        audit_statuses = ["Open", "In Progress", "Resolved", "Pending Verification", "Closed", "Deviation Accepted"]
-        assignees = user_roles + ["Cross-functional Team"]
-        dummy_entries = []
-        for i in range(1, 11):
-            status = np.random.choice(audit_statuses, p=[0.3, 0.3, 0.2, 0.1, 0.05, 0.05])
-            assignee = np.random.choice(assignees)
-            due_date = (datetime.today() + timedelta(days=np.random.randint(-5, 45))).strftime("%Y-%m-%d")
-            input_pending = "Yes" if np.random.rand() < 0.2 and status in ["Open", "In Progress"] else "No"
-            dummy_entries.append({
-                "audit_id": f"AD-{i:03d}",
-                "point_description": f"Audit finding {i}: " + np.random.choice(["Non-compliance in safety protocol", "Documentation incomplete", "Calibration record missing", "Supplier quality deviation", "Environmental regulation breach"]),
-                "status": status,
-                "assignee": assignee,
-                "due_date": due_date,
-                "resolution": f"Resolution for finding {i}.",
-                "input_pending": input_pending
-            })
-    elif data_type == "files":
-        dummy_entries = [
-            # NDA/MSA documents directly in supplier_records
-            {"filename": "Zenova_NDA_SupplierA.pdf", "type": "application/pdf", "size": 120000, "uploader": "OEM", "timestamp": (datetime.now() - timedelta(days=20)).strftime("%Y-%m-%d %H:%M:%S"), "target_dir": SUPPLIER_RECORDS_DIR},
-            {"filename": "SupplierB_MSA_v2.docx", "type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "size": 85000, "uploader": "Supplier B", "timestamp": (datetime.now() - timedelta(days=18)).strftime("%Y-%m-%d %H:%M:%S"), "target_dir": SUPPLIER_RECORDS_DIR},
-            # General files in DATA_DIR
-            {"filename": "Q1_Audit_Summary_Report.xlsx", "type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "size": 250000, "uploader": "Auditor", "timestamp": (datetime.now() - timedelta(days=15)).strftime("%Y-%m-%d %H:%M:%S"), "target_dir": DATA_DIR},
-            {"filename": "Project_Alpha_Requirements.pdf", "type": "application/pdf", "size": 150000, "uploader": "OEM", "timestamp": (datetime.now() - timedelta(days=10)).strftime("%Y-%m-%d %H:%M:%S"), "target_dir": DATA_DIR},
-            {"filename": "Asset_Calibration_Schedule.xlsx", "type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "size": 90000, "uploader": "OEM", "timestamp": (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d %H:%M:%S"), "target_dir": DATA_DIR},
-        ]
-        
-        final_entries = []
-        for entry in dummy_entries:
-            file_name = entry["filename"]
-            target_dir = entry["target_dir"]
-            dummy_file_path = os.path.join(target_dir, file_name)
-
-            os.makedirs(os.path.dirname(dummy_file_path), exist_ok=True)
-            if not os.path.exists(dummy_file_path):
-                with open(dummy_file_path, 'w') as f:
-                    f.write(f"This is a dummy file for {file_name}.")
-                st.info(f"Created dummy file: {file_name}")
-            
-            # Create a new dictionary for the DataFrame to avoid modifying the loop variable directly
-            df_entry = entry.copy()
-            df_entry['path'] = dummy_file_path # Store the absolute path
-            del df_entry['target_dir'] # Remove the temporary 'target_dir'
-            final_entries.append(df_entry)
-        dummy_entries = final_entries # Assign the cleaned entries to dummy_entries
-
-    elif data_type == "supplier_data":
-        dummy_entries = []
-        supplier_names = ["Global Parts Inc.", "Tech Solutions Ltd.", "Precision Manufacturing Co.", "Innovate Components", "Reliable Assemblies"]
-        agreement_statuses = ["Active", "Pending Renewal", "Terminated", "On Hold"]
-        for i, name in enumerate(supplier_names):
-            supplier_id = f"SUP-{i+1:03d}"
-            dummy_entries.append({
-                "supplier_id": supplier_id,
-                "supplier_name": name,
-                "contact_person": np.random.choice(["Alice Smith", "Bob Johnson", "Charlie Brown", "Diana Prince"]),
-                "email": f"{name.lower().replace(' ', '').replace('.', '')}@example.com", # More robust email
-                "phone": f"+1-555-{np.random.randint(100, 999)}-{np.random.randint(1000, 9999)}",
-                "agreement_status": np.random.choice(agreement_statuses),
-                "last_audit_score": np.random.randint(70, 99),
-                "notes": f"General notes for {name}."
-            })
-    else:
-        dummy_entries = []
-
-    if dummy_entries:
-        pd.DataFrame(dummy_entries, columns=columns).to_csv(file_path, index=False)
-
-
-def load_data(file_path, columns=None, data_type=None, user_roles=None):
-    """Loads data, creating dummy data if the file is empty."""
-    if not os.path.exists(file_path) or os.path.getsize(file_path) == 0:
-        create_dummy_data(file_path, columns, data_type, user_roles)
-
+def load_data(file_path, columns=None):
+    """Loads data from a CSV file. Returns an empty DataFrame if file is empty or not found."""
     if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
         try:
             df = pd.read_csv(file_path)
+            # Ensure columns are present, add if missing (e.g., new columns from updates)
             if columns:
                 for col in columns:
                     if col not in df.columns:
-                        df[col] = None
+                        df[col] = None # Add missing columns with None or default
             return df
         except pd.errors.EmptyDataError:
+            # File exists but is empty
             if columns:
                 return pd.DataFrame(columns=columns)
             return pd.DataFrame()
-    elif columns:
-        return pd.DataFrame(columns=columns)
-    return pd.DataFrame()
+    else:
+        # File does not exist or is empty (handled by initialize_csv)
+        if columns:
+            return pd.DataFrame(columns=columns)
+        return pd.DataFrame()
 
 def append_data(file_path, new_entry_df):
     """Appends data to a CSV, ensuring all columns match."""
@@ -179,7 +59,9 @@ def append_data(file_path, new_entry_df):
     df = pd.concat([df_existing, new_entry_df], ignore_index=True)
     df.to_csv(file_path, index=False)
 
-# --- Initialize CSV Files and Load Dummy Data ---
+# --- Initialize CSV Files (without dummy data generation here) ---
+# Dummy data for these files will be assumed to be pre-existing or created via forms.
+# The supplier_dummy_data.csv is the only one pre-populated externally.
 user_roles_list = ["OEM", "Supplier A", "Supplier B", "Auditor"]
 
 initialize_csv(CHAT_FILE, ["role", "message", "timestamp"])
@@ -188,14 +70,6 @@ initialize_csv(PROJECTS_FILE, ["task_id", "task_name", "status", "assigned_to", 
 initialize_csv(ASSETS_FILE, ["asset_id", "asset_name", "location", "status", "eol_date", "calibration_date", "notes", "supplier"])
 initialize_csv(AUDITS_FILE, ["audit_id", "point_description", "status", "assignee", "due_date", "resolution", "input_pending"])
 initialize_csv(SUPPLIER_DUMMY_DATA_FILE, ["supplier_id", "supplier_name", "contact_person", "email", "phone", "agreement_status", "last_audit_score", "notes"])
-
-# Load dummy data into CSVs if they are empty
-load_data(CHAT_FILE, columns=["role", "message", "timestamp"], data_type="chat", user_roles=user_roles_list)
-load_data(FILES_FILE, columns=["filename", "type", "size", "uploader", "timestamp", "path"], data_type="files", user_roles=user_roles_list)
-load_data(PROJECTS_FILE, columns=["task_id", "task_name", "status", "assigned_to", "due_date", "description", "input_pending"], data_type="project", user_roles=user_roles_list)
-load_data(ASSETS_FILE, columns=["asset_id", "asset_name", "location", "status", "eol_date", "calibration_date", "notes", "supplier"], data_type="asset", user_roles=user_roles_list)
-load_data(AUDITS_FILE, columns=["audit_id", "point_description", "status", "assignee", "due_date", "resolution", "input_pending"], data_type="audit", user_roles=user_roles_list)
-load_data(SUPPLIER_DUMMY_DATA_FILE, columns=["supplier_id", "supplier_name", "contact_person", "email", "phone", "agreement_status", "last_audit_score", "notes"], data_type="supplier_data", user_roles=user_roles_list)
 
 
 # --- Sidebar Login ---
@@ -209,9 +83,11 @@ st.sidebar.markdown(f"**Zenova SRP** - #1 Supplier Resource Planning tool for OE
 
 
 # --- Initialize Streamlit Session State (Global Scope) ---
+# Load initial data for chat history
+chat_df = load_data(CHAT_FILE, columns=["role", "message", "timestamp"])
 if "chat_history" not in st.session_state:
-    chat_df = load_data(CHAT_FILE, columns=["role", "message", "timestamp"])
     st.session_state.chat_history = chat_df.to_dict(orient="records")
+
 
 # --- Main Application Tabs ---
 tab_titles = [
@@ -233,6 +109,7 @@ with tabs[0]:
         st.subheader("📊 OEM Performance Dashboard")
         st.markdown("Monitor key performance indicators across suppliers and projects.")
 
+        # Load all relevant data for the dashboard (now from existing CSVs)
         projects_df = load_data(PROJECTS_FILE, columns=["task_id", "task_name", "status", "assigned_to", "due_date", "input_pending"])
         assets_df = load_data(ASSETS_FILE, columns=["asset_id", "asset_name", "location", "status", "supplier"])
         audits_df = load_data(AUDITS_FILE, columns=["audit_id", "point_description", "status", "assignee", "due_date", "input_pending"])
@@ -247,7 +124,7 @@ with tabs[0]:
                                title='Assets Managed by Each Supplier', color='supplier')
             st.plotly_chart(fig_parts, use_container_width=True)
         else:
-            st.info("No asset data to show supplier parts breakdown.")
+            st.info("No asset data to show supplier parts breakdown. Add assets in 'Asset Management' tab.")
 
         st.markdown("---")
         st.write("### Operational Status Overview")
@@ -263,7 +140,7 @@ with tabs[0]:
                                    title='Project Task Distribution')
                 st.plotly_chart(fig_tasks, use_container_width=True)
             else:
-                st.info("No project task data.")
+                st.info("No project task data. Add tasks in 'Project Management' tab.")
 
         with col2:
             st.write("#### Asset Status")
@@ -275,7 +152,7 @@ with tabs[0]:
                                     title='Asset Status Distribution')
                 st.plotly_chart(fig_assets, use_container_width=True)
             else:
-                st.info("No asset data.")
+                st.info("No asset data. Add assets in 'Asset Management' tab.")
 
         with col3:
             st.write("#### Audit Point Status")
@@ -287,7 +164,7 @@ with tabs[0]:
                                     title='Audit Point Distribution')
                 st.plotly_chart(fig_audits, use_container_width=True)
             else:
-                st.info("No audit data.")
+                st.info("No audit data. Add audit points in 'Audit Management' tab.")
 
         st.markdown("---")
         st.write("### Performance Metrics")
@@ -368,19 +245,13 @@ with tabs[2]:
 
     if uploaded_file:
         save_path = os.path.join(selected_upload_folder_path, uploaded_file.name)
-        
-        # --- DEBUGGING PRINT STATEMENTS ---
-        st.sidebar.write(f"DEBUG: selected_upload_folder_path type: {type(selected_upload_folder_path)}, value: {selected_upload_folder_path}")
-        st.sidebar.write(f"DEBUG: uploaded_file.name type: {type(uploaded_file.name)}, value: {uploaded_file.name}")
-        st.sidebar.write(f"DEBUG: save_path constructed type: {type(save_path)}, value: {save_path}")
-        # --- END DEBUGGING ---
 
         try:
             with open(save_path, "wb") as f:
                 f.write(uploaded_file.getbuffer())
         except TypeError as e:
             st.error(f"Error saving file: {e}. 'save_path' might not be a valid string. Check console for DEBUG messages.")
-            st.stop() # Stop execution to prevent further errors if file saving fails
+            st.stop()
 
         file_details = {
             "filename": uploaded_file.name,
@@ -404,7 +275,6 @@ with tabs[2]:
     st.subheader("Uploaded Files History")
     files_df = load_data(FILES_FILE, columns=["filename", "type", "size", "uploader", "timestamp", "path"])
     if not files_df.empty:
-        # Ensure 'path' column exists and is string type and handle NaNs
         files_df['path'] = files_df['path'].fillna('').astype(str)
         display_df = files_df.drop(columns=['path'])
         st.dataframe(display_df, use_container_width=True)
@@ -415,11 +285,9 @@ with tabs[2]:
             file_to_download_path_series = files_df[files_df['filename'] == selected_file_name_to_download]['path']
             file_to_download_path = file_to_download_path_series.iloc[0] if not file_to_download_path_series.empty else ''
 
-            # --- CRITICAL VALIDATION ---
             if not isinstance(file_to_download_path, str):
                 st.error(f"Internal error: Download path is not a string. Type: {type(file_to_download_path)}, Value: {file_to_download_path}")
-                file_to_download_path = '' # Reset to empty to prevent further errors
-            # --- END CRITICAL VALIDATION ---
+                file_to_download_path = ''
 
             if file_to_download_path and os.path.exists(file_to_download_path):
                 with open(file_to_download_path, "rb") as file:
@@ -474,7 +342,7 @@ with tabs[3]:
         st.dataframe(projects_df, use_container_width=True)
         st.info("💡 Tip: A full Gantt chart requires a visualization library like Plotly. This table shows task data.")
     else:
-        st.info("No project tasks added yet.")
+        st.info("No project tasks added yet. Add tasks using the 'Add New Project Task' expander above.")
 
 # --- Asset Management Module ---
 with tabs[4]:
@@ -517,7 +385,7 @@ with tabs[4]:
     if not assets_df.empty:
         st.dataframe(assets_df, use_container_width=True)
     else:
-        st.info("No assets logged yet.")
+        st.info("No assets logged yet. Add assets using the 'Add New Asset' expander above.")
 
 # --- Audit Management Module ---
 with tabs[5]:
@@ -558,7 +426,7 @@ with tabs[5]:
     if not audits_df.empty:
         st.dataframe(audits_df, use_container_width=True)
     else:
-        st.info("No audit points recorded yet.")
+        st.info("No audit points recorded yet. Add audit points using the 'Add New Audit Point / Finding' expander above.")
 
 # --- Supplier Records Module ---
 with tabs[6]:
@@ -570,7 +438,7 @@ with tabs[6]:
     if not supplier_df.empty:
         st.dataframe(supplier_df, use_container_width=True)
     else:
-        st.info("No supplier records available.")
+        st.info("No supplier records available. Ensure 'supplier_dummy_data.csv' is in your 'data/' folder.")
 
     st.markdown("---")
     st.write("### Add New Supplier Record")
