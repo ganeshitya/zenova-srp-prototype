@@ -16,7 +16,7 @@ PROJECTS_FILE = os.path.join(DATA_DIR, "project_tasks.csv")
 ASSETS_FILE = os.path.join(DATA_DIR, "assets.csv")
 AUDITS_FILE = os.path.join(DATA_DIR, "audit_points.csv")
 SUPPLIER_RECORDS_DIR = os.path.join(DATA_DIR, "supplier_records")
-SUPPLIER_DUMMY_DATA_FILE = os.path.join(DATA_DIR, "supplier_dummy_data.csv") # New: Supplier Dummy Data File
+SUPPLIER_DUMMY_DATA_FILE = os.path.join(DATA_DIR, "supplier_dummy_data.csv")
 
 os.makedirs(DATA_DIR, exist_ok=True)
 os.makedirs(SUPPLIER_RECORDS_DIR, exist_ok=True)
@@ -62,7 +62,7 @@ def append_data(file_path, new_entry_df):
 # --- Initialize CSV Files (without dummy data generation here) ---
 # Dummy data for these files will be assumed to be pre-existing or created via forms.
 # The supplier_dummy_data.csv is the only one pre-populated externally.
-user_roles_list = ["OEM", "Supplier A", "Supplier B", "Auditor"]
+user_roles_list = ["OEM", "Auditor"] # Removed Supplier A/B from generic roles as suppliers now come from supplier_dummy_data.csv
 
 initialize_csv(CHAT_FILE, ["role", "message", "timestamp"])
 initialize_csv(FILES_FILE, ["filename", "type", "size", "uploader", "timestamp", "path"])
@@ -75,7 +75,7 @@ initialize_csv(SUPPLIER_DUMMY_DATA_FILE, ["supplier_id", "supplier_name", "conta
 # --- Sidebar Login ---
 st.sidebar.image("https://www.zenovagroup.com/wp-content/uploads/2023/10/logo.svg", width=200)
 st.sidebar.title("Zenova SRP Login")
-user_roles = ["OEM", "Supplier A", "Supplier B", "Auditor"]
+user_roles = ["OEM", "Supplier A", "Supplier B", "Auditor"] # Keep for login
 user_role = st.sidebar.selectbox("Login as", user_roles, key="user_role_select")
 st.sidebar.success(f"Logged in as {user_role}")
 st.sidebar.markdown("---")
@@ -113,9 +113,79 @@ with tabs[0]:
         projects_df = load_data(PROJECTS_FILE, columns=["task_id", "task_name", "status", "assigned_to", "due_date", "input_pending"])
         assets_df = load_data(ASSETS_FILE, columns=["asset_id", "asset_name", "location", "status", "supplier"])
         audits_df = load_data(AUDITS_FILE, columns=["audit_id", "point_description", "status", "assignee", "due_date", "input_pending"])
+        supplier_df = load_data(SUPPLIER_DUMMY_DATA_FILE, columns=["supplier_id", "supplier_name", "contact_person", "email", "phone", "agreement_status", "last_audit_score", "notes"])
+
 
         st.markdown("---")
         st.write("### Supplier Performance Metrics")
+
+        # Row for agreement status and audit score distribution
+        col_sup1, col_sup2 = st.columns(2)
+
+        with col_sup1:
+            st.write("#### Supplier Agreement Status")
+            if not supplier_df.empty:
+                supplier_df['agreement_status'] = supplier_df['agreement_status'].fillna('Unknown').astype(str)
+                status_counts = supplier_df['agreement_status'].value_counts().reset_index()
+                status_counts.columns = ['Status', 'Count']
+                fig_status = px.pie(status_counts, values='Count', names='Status',
+                                    title='Distribution of Supplier Agreement Status')
+                st.plotly_chart(fig_status, use_container_width=True)
+            else:
+                st.info("No supplier data to show agreement status.")
+
+        with col_sup2:
+            st.write("#### Last Audit Score Distribution")
+            if not supplier_df.empty and 'last_audit_score' in supplier_df.columns:
+                fig_audit_dist = px.histogram(supplier_df, x='last_audit_score', nbins=10,
+                                             title='Distribution of Last Audit Scores',
+                                             labels={'last_audit_score': 'Audit Score'})
+                st.plotly_chart(fig_audit_dist, use_container_width=True)
+            else:
+                st.info("No supplier data to show audit score distribution.")
+
+        st.markdown("---")
+        st.write("#### Average Audit Score by Agreement Status")
+        if not supplier_df.empty and 'last_audit_score' in supplier_df.columns:
+            avg_audit_by_status = supplier_df.groupby('agreement_status')['last_audit_score'].mean().reset_index()
+            fig_avg_audit = px.bar(avg_audit_by_status, x='agreement_status', y='last_audit_score',
+                                   title='Average Last Audit Score by Agreement Status',
+                                   labels={'agreement_status': 'Agreement Status', 'last_audit_score': 'Average Audit Score'})
+            st.plotly_chart(fig_avg_audit, use_container_width=True)
+        else:
+            st.info("No supplier data to show average audit scores by status.")
+
+        st.markdown("---")
+        col_audit1, col_audit2 = st.columns(2)
+        with col_audit1:
+            st.write("#### Top 10 Suppliers by Audit Score")
+            if not supplier_df.empty and 'last_audit_score' in supplier_df.columns:
+                top_suppliers = supplier_df.sort_values(by='last_audit_score', ascending=False).head(10)
+                st.dataframe(top_suppliers[['supplier_name', 'last_audit_score']], use_container_width=True)
+            else:
+                st.info("No supplier data to show top suppliers.")
+
+        with col_audit2:
+            st.write("#### Bottom 10 Suppliers by Audit Score")
+            if not supplier_df.empty and 'last_audit_score' in supplier_df.columns:
+                bottom_suppliers = supplier_df.sort_values(by='last_audit_score', ascending=True).head(10)
+                st.dataframe(bottom_suppliers[['supplier_name', 'last_audit_score']], use_container_width=True)
+            else:
+                st.info("No supplier data to show bottom suppliers.")
+
+        st.markdown("---")
+        st.write("#### Suppliers with Agreements Due for Renewal")
+        if not supplier_df.empty:
+            pending_renewal = supplier_df[supplier_df['agreement_status'] == 'Pending Renewal']
+            if not pending_renewal.empty:
+                st.dataframe(pending_renewal[['supplier_name', 'contact_person', 'email', 'agreement_status']], use_container_width=True)
+            else:
+                st.info("No suppliers currently pending renewal.")
+        else:
+            st.info("No supplier data to check for pending renewals.")
+
+
+        st.markdown("---")
         if not assets_df.empty:
             st.write("#### Number of Parts/Assets with Each Supplier")
             assets_df['supplier'] = assets_df['supplier'].fillna('Unassigned').astype(str)
@@ -349,6 +419,12 @@ with tabs[4]:
     st.subheader("🔧 Inter-Company Asset Management")
     st.markdown("Features: Log of assets, Manage EOL/Calibration, Assess inventory/scrap cost, Audit framework. *Future: Auto asset numbering, Cost analysis.*")
 
+    # Load supplier data for the dropdown
+    supplier_df_for_selection = load_data(SUPPLIER_DUMMY_DATA_FILE, columns=["supplier_name"])
+    supplier_names_for_dropdown = supplier_df_for_selection['supplier_name'].tolist()
+    if not supplier_names_for_dropdown:
+        supplier_names_for_dropdown = ["N/A (No suppliers found)"] # Fallback if supplier file is empty
+
     with st.expander("Add New Asset", expanded=False):
         with st.form("new_asset_form", clear_on_submit=True):
             asset_id_val = st.text_input("Asset ID (e.g., ZNV-TOOL-001)", key="asset_id_input")
@@ -356,7 +432,8 @@ with tabs[4]:
             location = st.selectbox("Location", ["OEM Site", "Supplier A Facility", "Supplier B Warehouse", "In Transit"])
             asset_status_options = ["In Use", "In Storage", "Under Maintenance", "Awaiting Calibration", "End of Life (EOL)", "Scrapped"]
             asset_status = st.selectbox("Status", asset_status_options)
-            asset_supplier = st.selectbox("Supplier", user_roles_list)
+            # Use actual supplier names for asset assignment
+            asset_supplier = st.selectbox("Supplier", supplier_names_for_dropdown)
             eol_date = st.date_input("End of Life (EOL) Date", value=None, key="eol_date_asset")
             calibration_date = st.date_input("Next Calibration Date", value=None, key="cal_date_asset")
             notes = st.text_area("Notes/Comments")
