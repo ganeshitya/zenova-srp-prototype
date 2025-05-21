@@ -1,101 +1,101 @@
-supplier_id,supplier_name,contact_person,email,phone,agreement_status,last_audit_score,notes
-SUP-001,Global Parts Inc.,Alice Smith,globalpartsinc@example.com,+1-555-456-7890,Active,92,Leading supplier for automotive components.
-SUP-002,Tech Solutions Ltd.,Bob Johnson,techsolutionsltd@example.com,+1-555-123-4567,Active,88,Specializes in electronic assemblies.
-SUP-003,Precision Manufacturing Co.,Charlie Brown,precisionmanufacturingco@example.com,+1-555-789-0123,Pending Renewal,75,Known for high-precision machining.
-SUP-004,Innovate Components,Diana Prince,innovatecomponents@example.com,+1-555-345-6789,Active,95,Innovative designs and rapid prototyping.
-SUP-005,Reliable Assemblies,Eve Adams,reliableassemblies@example.com,+1-555-901-2345,Active,89,Consistent quality in sub-assembly.
-SUP-006,Future Fabricators,Frank White,futurefabricators@example.com,+1-555-234-5678,Active,91,Advanced materials and fabrication.
-SUP-007,Dynamic Dies,Grace Hall,dynamicdies@example.com,+1-555-890-1234,Terminated,68,Previously supplied custom dies.
-SUP-008,Apex Automation,Harry Green,apexautomation@example.com,+1-555-567-8901,Active,93,Robotics and automation solutions.
-SUP-009,Quantum Quality,Ivy King,quantumquality@example.com,+1-555-012-3456,Active,90,Strict quality control processes.
-SUP-010,Mega Metals,Jack Blue,megametals@example.com,+1-555-678-9012,On Hold,70,Large-scale metal stamping.
-SUP-011,Prime Plastics,Karen Red,primeplastics@example.com,+1-555-321-0987,Active,87,Injection molding and plastic parts.
-SUP-012,Elite Engineering,Leo Black,eliteengineering@example.com,+1-555-987-6543,Active,94,Custom engineering and design.
-SUP-013,Swift Solutions,Mia White,swiftsolutions@example.com,+1-555-432-1098,Active,85,Fast turnaround for prototypes.
-SUP-014,Optimal Optics,Noah Grey,optimaloptics@example.com,+1-555-876-5432,Pending Renewal,78,Precision optical components.
-SUP-015,Unified Utilities,Olivia Teal,unifiedutilities@example.com,+1-555-210-9876,Active,86,General utility and maintenance supplies.
-SUP-016,Vanguard Ventures,Peter Cyan,vanguardventures@example.com,+1-555-765-4321,Active,90,New technology integration.
-SUP-017,Zenith Zippers,Quinn Gold,zenithzippers@example.com,+1-555-109-8765,Active,82,Specialized fastening solutions.
-SUP-018,Alpha Alloys,Rachel Silver,alphaalloys@example.com,+1-555-654-3210,Active,93,High-performance alloy casting.
-SUP-019,Beta Bearings,Sam Bronze,betabearings@example.com,+1-555-098-7654,Active,88,Industrial bearings and components.
-SUP-020,Gamma Gears,Tina Copper,gammagears@example.com,+1-555-543-2109,Active,89,Custom gear manufacturing.
-SUP-021,Delta Drives,Uma Iron,deltadrives@example.com,+1-555-987-0123,Active,91,Power transmission systems.
-SUP-022,Epsilon Engines,Victor Steel,epsilonengines@example.com,+1-555-234-7890,Active,92,Small engine components.
-SUP-023,Zeta Zappers,Wendy Lead,zetazappers@example.com,+1-555-876-1234,Active,84,Electrical connectors and wiring.
-SUP-024,Eta Elements,Xavier Zinc,etaelements@example.com,+1-555-345-8901,Active,87,Rare earth elements and magnets.
-SUP-025,Theta Tools,Yara Nickel,thetatools@example.com,+1-555-901-4567,Active,90,Specialty tools and equipment.
-SUP-026,Iota Innovations,Zane Platinum,iotainnovations@example.com,+1-555-123-7890,Active,95,Cutting-edge R&D and prototyping.
-SUP-027,Kappa Kits,Anna Aluminum,kappakits@example.com,+1-555-678-0123,Active,88,Assembly kits and sub-assemblies.
-SUP-028,Lambda Labs,Ben Copper,lambdalabs@example.com,+1-555-012-4567,Active,91,Testing and analytical services.
-SUP-029,Mu Motors,Chloe Iron,mumotors@example.com,+1-555-567-8901,Active,92,Electric motors and actuators.
-SUP-030,Nu Nuts,David Steel,nunuts@example.com,+1-555-987-6543,Active,85,Fasteners and hardware.
-SUP-031,Xi Xylophones,Emily Lead,xixylophones@example.com,+1-555-432-1098,Active,80,Acoustic dampening materials.
-SUP-032,Omicron Optics,Fred Zinc,omicronoptics@example.com,+1-555-876-5432,Active,89,Lenses and optical systems.
-SUP-033,Pi Pipes,Gina Nickel,pipipes@example.com,+1-555-210-9876,Active,86,Piping and fluid transfer.
-SUP-034,Rho Robotics,Henry Platinum,rhorobotics@example.com,+1-555-765-4321,Active,94,Robotic components and integration.
-SUP-035,Sigma Sensors,Isla Aluminum,sigmasensors@example.com,+1-555-109-8765,Active,90,Advanced sensor technology.
-SUP-036,Tau Tubes,Jacob Bronze,tautubes@example.com,+1-555-654-3210,Active,87,Tubing and conduit solutions.
-SUP-037,Upsilon Units,Kate Copper,upsilonunits@example.com,+1-555-098-7654,Active,88,Modular units and enclosures.
-SUP-038,Phi Filters,Liam Iron,phifilters@example.com,+1-555-543-2109,Active,91,Filtration systems and media.
-SUP-039,Chi Chains,Maya Steel,chichains@example.com,+1-555-987-0123,Active,89,Industrial chains and sprockets.
-SUP-040,Psi Pumps,Noah Lead,psipumps@example.com,+1-555-234-7890,Active,92,Fluid handling pumps.
-SUP-041,Omega Ovens,Olivia Zinc,omegaovens@example.com,+1-555-876-1234,Active,85,Industrial heating solutions.
-SUP-042,Acme Adhesives,Peter Nickel,acmeadhesives@example.com,+1-555-345-8901,Active,88,Industrial adhesives and sealants.
-SUP-043,Best Bearings,Quinn Platinum,bestbearings@example.com,+1-555-901-4567,Active,93,High-performance bearings.
-SUP-044,Central Castings,Rachel Aluminum,centralcastings@example.com,+1-555-123-7890,Active,86,Precision metal casting.
-SUP-045,Dynamic Drills,Sam Bronze,dynamicdrills@example.com,+1-555-678-0123,Active,89,Drilling and cutting tools.
-SUP-046,Evergreen Electronics,Tina Copper,evergreenelectronics@example.com,+1-555-012-4567,Active,90,Sustainable electronic components.
-SUP-047,Fasteners First,Uma Iron,fastenersfirst@example.com,+1-555-567-8901,Active,87,Comprehensive fastener solutions.
-SUP-048,Global Gaskets,Victor Steel,globalgaskets@example.com,+1-555-987-6543,Active,91,Custom gaskets and seals.
-SUP-049,Hydro Hydraulics,Wendy Lead,hydrohydraulics@example.com,+1-555-432-1098,Active,92,Hydraulic systems and components.
-SUP-050,Industrial Insulators,Xavier Zinc,industrialinsulators@example.com,+1-555-876-5432,Active,84,Thermal and electrical insulation.
-SUP-051,Joint Ventures,Yara Nickel,jointventures@example.com,+1-555-210-9876,Active,88,Specialized joint and coupling solutions.
-SUP-052,Kinetic Kits,Zane Platinum,kinetickits@example.com,+1-555-765-4321,Active,90,Motion control kits.
-SUP-053,Linear Logic,Anna Aluminum,linearlogic@example.com,+1-555-109-8765,Active,86,Linear motion systems.
-SUP-054,Mega Motors,Ben Copper,megamotors@example.com,+1-555-654-3210,Active,93,High-torque electric motors.
-SUP-055,New Age Nuts,Chloe Iron,newagenuts@example.com,+1-555-098-7654,Active,89,Advanced nut and bolt solutions.
-SUP-056,Optical Optics,David Steel,opticaloptics@example.com,+1-555-543-2109,Active,94,Precision optical instruments.
-SUP-057,Power Pumps,Emily Lead,powerpumps@example.com,+1-555-987-0123,Active,91,High-pressure pumping systems.
-SUP-058,Quality Quench,Fred Zinc,qualityquench@example.com,+1-555-234-7890,Active,88,Heat treatment and quenching services.
-SUP-059,Reliable Robotics,Gina Nickel,reliablerobotics@example.com,+1-555-876-1234,Active,95,Robotic arms and end effectors.
-SUP-060,Sensor Solutions,Henry Platinum,sensorsolutions@example.com,+1-555-345-8901,Active,90,Custom sensor development.
-SUP-061,Thermal Technologies,Isla Aluminum,thermaltechnologies@example.com,+1-555-901-4567,Active,87,Thermal management solutions.
-SUP-062,Ultimate Units,Jacob Bronze,ultimateunits@example.com,+1-555-123-7890,Active,88,Integrated modular units.
-SUP-063,Valve Vision,Kate Copper,valvevision@example.com,+1-555-678-0123,Active,91,Fluid control valves.
-SUP-064,Wire Wizards,Liam Iron,wirewizards@example.com,+1-555-012-4567,Active,86,Custom wiring harnesses.
-SUP-065,Xenon X-Rays,Maya Steel,xenonxrays@example.com,+1-555-567-8901,Active,92,X-ray inspection systems.
-SUP-066,Yield Yielders,Noah Lead,yieldyielders@example.com,+1-555-987-6543,Active,89,Productivity and yield optimization.
-SUP-067,Zero Zest,Olivia Zinc,zerozest@example.com,+1-555-432-1098,Active,85,Eco-friendly industrial cleaners.
-SUP-068,Advance Alloys,Peter Nickel,advancealloys@example.com,+1-555-876-5432,Active,93,Advanced alloy development.
-SUP-069,Bright Bearings,Quinn Platinum,brightbearings@example.com,+1-555-210-9876,Active,88,Low-friction bearings.
-SUP-070,Core Components,Rachel Aluminum,corecomponents@example.com,+1-555-765-4321,Active,90,Essential industrial components.
-SUP-071,Digital Drives,Sam Bronze,digitaldrives@example.com,+1-555-109-8765,Active,91,Digital motor control systems.
-SUP-072,Eco-Friendly Enclosures,Tina Copper,ecofriendlyenclosures@example.com,+1-555-654-3210,Active,87,Sustainable enclosure solutions.
-SUP-073,Fluid Flow Filters,Uma Iron,fluidflowfilters@example.com,+1-555-098-7654,Active,88,High-efficiency fluid filters.
-SUP-074,Gear Gurus,Victor Steel,geargurus@example.com,+1-555-543-2109,Active,92,Expert gear design and manufacturing.
-SUP-075,Heat Handlers,Wendy Lead,heathandlers@example.com,+1-555-987-0123,Active,85,Industrial heat exchangers.
-SUP-076,Infra Integrators,Xavier Zinc,infraintegrators@example.com,+1-555-234-7890,Active,89,Infrastructure integration services.
-SUP-077,Jig Jockeys,Yara Nickel,jigjockeys@example.com,+1-555-876-1234,Active,86,Custom jigs and fixtures.
-SUP-078,Key Connectors,Zane Platinum,keyconnectors@example.com,+1-555-345-8901,Active,94,Critical electrical connectors.
-SUP-079,Laser Light Labs,Anna Aluminum,laserlightlabs@example.com,+1-555-901-4567,Active,90,Laser cutting and engraving services.
-SUP-080,Material Masters,Ben Copper,materialmasters@example.com,+1-555-123-7890,Active,87,Specialty material sourcing.
-SUP-081,Nano Networks,Chloe Iron,nanonetworks@example.com,+1-555-678-0123,Active,91,Nanotechnology components.
-SUP-082,Opti-Flow,David Steel,optiflow@example.com,+1-555-012-4567,Active,88,Optimized fluid flow systems.
-SUP-083,Precision Parts,Emily Lead,precisionparts@example.com,+1-555-567-8901,Active,93,High-tolerance machined parts.
-SUP-084,Quick Quads,Fred Zinc,quickquads@example.com,+1-555-987-6543,Active,86,Rapid assembly of quadcopters.
-SUP-085,Robo-Solutions,Gina Nickel,robosolutions@example.com,+1-555-432-1098,Active,95,Comprehensive robotics solutions.
-SUP-086,Smart Sensors,Henry Platinum,smartsensors@example.com,+1-555-876-5432,Active,90,IoT-enabled sensors.
-SUP-087,Tool Titans,Isla Aluminum,tooltitans@example.com,+1-555-210-9876,Active,87,Heavy-duty industrial tools.
-SUP-088,Universal Units,Jacob Bronze,universalunits@example.com,+1-555-765-4321,Active,88,Versatile modular components.
-SUP-089,Vortex Valves,Kate Copper,vortexvalves@example.com,+1-555-109-8765,Active,91,High-performance industrial valves.
-SUP-090,Welding Wonders,Liam Iron,weldingwonders@example.com,+1-555-654-3210,Active,89,Specialized welding services.
-SUP-091,Xtreme X-Ray,Maya Steel,xtremexray@example.com,+1-555-098-7654,Active,92,High-resolution X-ray imaging.
-SUP-092,Yellow Yield,Noah Lead,yellowyield@example.com,+1-555-543-2109,Active,85,Crop yield optimization solutions.
-SUP-093,Zippy Zaps,Olivia Zinc,zippyzaps@example.com,+1-555-987-0123,Active,88,Fast and efficient electrical components.
-SUP-094,Aero Alloys,Peter Nickel,aeroalloys@example.com,+1-555-234-7890,Active,93,Aerospace-grade alloys.
-SUP-095,Bolt Busters,Quinn Platinum,boltbusters@example.com,+1-555-876-1234,Active,86,Heavy-duty bolt removal tools.
-SUP-096,Cable Kings,Rachel Aluminum,cablekings@example.com,+1-555-345-8901,Active,89,Industrial cabling solutions.
-SUP-097,Drive Dynamics,Sam Bronze,drivedynamics@example.com,+1-555-901-4567,Active,90,Advanced drive systems.
-SUP-098,Energy Enablers,Tina Copper,energyenablers@example.com,+1-555-123-7890,Active,87,Energy-efficient industrial solutions.
-SUP-099,Filter Force,Uma Iron,filterforce@example.com,+1-555-678-0123,Active,88,High-capacity filtration systems.
-SUP-100,Gear Geniuses,Victor Steel,geargeniuses@example.com,+1-555-012-4567,Active,91,Innovative gear technologies.
+supplier_id,supplier_name,contact_person,email,phone,agreement_status,last_audit_score,notes,primary_product_category,on_time_delivery_rate,quality_reject_rate,risk_level,certification,annual_spend_usd,last_performance_review_date
+SUP-001,Global Parts Inc.,Alice Smith,globalpartsinc@example.com,+1-555-456-7890,Active,92,Leading supplier for automotive components.,Raw Materials,98.5,0.1,Low,ISO 9001,500000,2024-03-15
+SUP-002,Tech Solutions Ltd.,Bob Johnson,techsolutionsltd@example.com,+1-555-123-4567,Active,88,Specializes in electronic assemblies.,Electronic Components,95.2,0.5,Medium,ISO 9001,750000,2023-11-20
+SUP-003,Precision Manufacturing Co.,Charlie Brown,precisionmanufacturingco@example.com,+1-555-789-0123,Pending Renewal,75,Known for high-precision machining.,Machined Parts,91.0,1.2,High,AS9100,300000,2024-01-10
+SUP-004,Innovate Components,Diana Prince,innovatecomponents@example.com,+1-555-345-6789,Active,95,Innovative designs and rapid prototyping.,Assemblies,99.1,0.05,Low,ISO 9001,1200000,2024-04-22
+SUP-005,Reliable Assemblies,Eve Adams,reliableassemblies@example.com,+1-555-901-2345,Active,89,Consistent quality in sub-assembly.,Sub-assemblies,96.8,0.3,Medium,ISO 9001,600000,2023-12-01
+SUP-006,Future Fabricators,Frank White,futurefabricators@example.com,+1-555-234-5678,Active,91,Advanced materials and fabrication.,Fabricated Metals,97.0,0.2,Low,ISO 9001,800000,2024-02-28
+SUP-007,Dynamic Dies,Grace Hall,dynamicdies@example.com,+1-555-890-1234,Terminated,68,Previously supplied custom dies.,Tools & Dies,85.0,2.5,High,None,150000,2023-09-05
+SUP-008,Apex Automation,Harry Green,apexautomation@example.com,+1-555-567-8901,Active,93,Robotics and automation solutions.,Automation Equipment,98.0,0.1,Low,ISO 9001,950000,2024-01-18
+SUP-009,Quantum Quality,Ivy King,quantumquality@example.com,+1-555-012-3456,Active,90,Strict quality control processes.,Quality Services,97.5,0.2,Low,ISO 9001,400000,2024-03-01
+SUP-010,Mega Metals,Jack Blue,megametals@example.com,+1-555-678-9012,On Hold,70,Large-scale metal stamping.,Raw Materials,89.0,1.8,High,None,250000,2023-10-15
+SUP-011,Prime Plastics,Karen Red,primeplastics@example.com,+1-555-321-0987,Active,87,Injection molding and plastic parts.,Plastic Components,94.0,0.7,Medium,ISO 9001,550000,2024-02-14
+SUP-012,Elite Engineering,Leo Black,eliteengineering@example.com,+1-555-987-6543,Active,94,Custom engineering and design.,Engineering Services,98.8,0.0,Low,ISO 9001,1100000,2024-04-01
+SUP-013,Swift Solutions,Mia White,swiftsolutions@example.com,+1-555-432-1098,Active,85,Fast turnaround for prototypes.,Prototypes,93.0,0.8,Medium,None,450000,2023-11-05
+SUP-014,Optimal Optics,Noah Grey,optimaloptics@example.com,+1-555-876-5432,Pending Renewal,78,Precision optical components.,Optical Components,90.0,1.5,High,ISO 9001,200000,2024-01-25
+SUP-015,Unified Utilities,Olivia Teal,unifiedutilities@example.com,+1-555-210-9876,Active,86,General utility and maintenance supplies.,Maintenance Supplies,96.0,0.4,Low,None,350000,2024-03-08
+SUP-016,Vanguard Ventures,Peter Cyan,vanguardventures@example.com,+1-555-765-4321,Active,90,New technology integration.,Technology Services,97.2,0.1,Low,ISO 27001,850000,2024-04-10
+SUP-017,Zenith Zippers,Quinn Gold,zenithzippers@example.com,+1-555-109-8765,Active,82,Specialized fastening solutions.,Fasteners,94.5,0.6,Medium,ISO 9001,280000,2023-10-28
+SUP-018,Alpha Alloys,Rachel Silver,alphaalloys@example.com,+1-555-654-3210,Active,93,High-performance alloy casting.,Raw Materials,98.0,0.2,Low,ISO 9001,900000,2024-03-20
+SUP-019,Beta Bearings,Sam Bronze,betabearings@example.com,+1-555-098-7654,Active,88,Industrial bearings and components.,Machined Parts,95.5,0.4,Medium,ISO 9001,480000,2023-12-15
+SUP-020,Gamma Gears,Tina Copper,gammagears@example.com,+1-555-543-2109,Active,89,Custom gear manufacturing.,Machined Parts,96.0,0.3,Low,ISO 9001,620000,2024-02-05
+SUP-021,Delta Drives,Uma Iron,deltadrives@example.com,+1-555-987-0123,Active,91,Power transmission systems.,Electronic Components,97.1,0.1,Low,ISO 9001,780000,2024-01-30
+SUP-022,Epsilon Engines,Victor Steel,epsilonengines@example.com,+1-555-234-7890,Active,92,Small engine components.,Assemblies,97.5,0.2,Low,ISO 9001,700000,2024-03-05
+SUP-023,Zeta Zappers,Wendy Lead,zetazappers@example.com,+1-555-876-1234,Active,84,Electrical connectors and wiring.,Electronic Components,92.0,1.0,Medium,None,320000,2023-11-10
+SUP-024,Eta Elements,Xavier Zinc,etaelements@example.com,+1-555-345-8901,Active,87,Rare earth elements and magnets.,Raw Materials,94.0,0.6,Medium,None,400000,2024-02-20
+SUP-025,Theta Tools,Yara Nickel,thetatools@example.com,+1-555-901-4567,Active,90,Specialty tools and equipment.,Tools & Dies,96.5,0.0,Low,ISO 9001,500000,2024-04-15
+SUP-026,Iota Innovations,Zane Platinum,iotainnovations@example.com,+1-555-123-7890,Active,95,Cutting-edge R&D and prototyping.,Engineering Services,99.5,0.0,Low,ISO 9001,1500000,2024-05-01
+SUP-027,Kappa Kits,Anna Aluminum,kappakits@example.com,+1-555-678-0123,Active,88,Assembly kits and sub-assemblies.,Sub-assemblies,95.0,0.5,Medium,ISO 9001,420000,2023-12-20
+SUP-028,Lambda Labs,Ben Copper,lambdalabs@example.com,+1-555-012-4567,Active,91,Testing and analytical services.,Quality Services,97.0,0.1,Low,ISO 17025,600000,2024-03-25
+SUP-029,Mu Motors,Chloe Iron,mumotors@example.com,+1-555-567-8901,Active,92,Electric motors and actuators.,Electronic Components,97.8,0.05,Low,ISO 9001,880000,2024-01-05
+SUP-030,Nu Nuts,David Steel,nunuts@example.com,+1-555-987-6543,Active,85,Fasteners and hardware.,Fasteners,93.5,0.7,Medium,ISO 9001,270000,2023-11-18
+SUP-031,Xi Xylophones,Emily Lead,xixylophones@example.com,+1-555-432-1098,Active,80,Acoustic dampening materials.,Raw Materials,91.0,1.1,Medium,None,180000,2023-10-01
+SUP-032,Omicron Optics,Fred Zinc,omicronoptics@example.com,+1-555-876-5432,Active,89,Lenses and optical systems.,Optical Components,95.0,0.3,Low,ISO 9001,300000,2024-02-10
+SUP-033,Pi Pipes,Gina Nickel,pipipes@example.com,+1-555-210-9876,Active,86,Piping and fluid transfer.,Fabricated Metals,94.0,0.8,Medium,None,380000,2023-12-08
+SUP-034,Rho Robotics,Henry Platinum,rhorobotics@example.com,+1-555-765-4321,Active,94,Robotic components and integration.,Automation Equipment,98.2,0.05,Low,ISO 9001,1000000,2024-04-05
+SUP-035,Sigma Sensors,Isla Aluminum,sigmasensors@example.com,+1-555-109-8765,Active,90,Advanced sensor technology.,Electronic Components,97.0,0.2,Low,ISO 9001,650000,2024-03-03
+SUP-036,Tau Tubes,Jacob Bronze,tautubes@example.com,+1-555-654-3210,Active,87,Tubing and conduit solutions.,Fabricated Metals,94.5,0.6,Medium,None,290000,2023-11-25
+SUP-037,Upsilon Units,Kate Copper,upsilonunits@example.com,+1-555-098-7654,Active,88,Modular units and enclosures.,Assemblies,95.5,0.4,Medium,ISO 9001,580000,2023-12-28
+SUP-038,Phi Filters,Liam Iron,phifilters@example.com,+1-555-543-2109,Active,91,Filtration systems and media.,Maintenance Supplies,97.0,0.2,Low,ISO 9001,470000,2024-01-12
+SUP-039,Chi Chains,Maya Steel,chichains@example.com,+1-555-987-0123,Active,89,Industrial chains and sprockets.,Machined Parts,96.0,0.3,Low,None,330000,2024-02-01
+SUP-040,Psi Pumps,Noah Lead,psipumps@example.com,+1-555-234-7890,Active,92,Fluid handling pumps.,Assemblies,97.5,0.1,Low,ISO 9001,820000,2024-03-18
+SUP-041,Omega Ovens,Olivia Zinc,omegaovens@example.com,+1-555-876-1234,Active,85,Industrial heating solutions.,Automation Equipment,93.0,0.9,Medium,None,250000,2023-10-20
+SUP-042,Acme Adhesives,Peter Nickel,acmeadhesives@example.com,+1-555-345-8901,Active,88,Industrial adhesives and sealants.,Raw Materials,94.8,0.5,Medium,ISO 9001,360000,2024-02-15
+SUP-043,Best Bearings,Quinn Platinum,bestbearings@example.com,+1-555-901-4567,Active,93,High-performance bearings.,Machined Parts,98.0,0.1,Low,AS9100,700000,2024-04-25
+SUP-044,Central Castings,Rachel Aluminum,centralcastings@example.com,+1-555-123-7890,Active,86,Precision metal casting.,Raw Materials,93.5,0.7,Medium,None,410000,2023-11-01
+SUP-045,Dynamic Drills,Sam Bronze,dynamicdrills@example.com,+1-555-678-0123,Active,89,Drilling and cutting tools.,Tools & Dies,95.0,0.4,Low,ISO 9001,300000,2024-03-10
+SUP-046,Evergreen Electronics,Tina Copper,evergreenelectronics@example.com,+1-555-012-4567,Active,90,Sustainable electronic components.,Electronic Components,96.5,0.2,Low,ISO 14001,950000,2024-01-20
+SUP-047,Fasteners First,Uma Iron,fastenersfirst@example.com,+1-555-567-8901,Active,87,Comprehensive fastener solutions.,Fasteners,94.0,0.6,Medium,ISO 9001,200000,2023-12-05
+SUP-048,Global Gaskets,Victor Steel,globalgaskets@example.com,+1-555-987-6543,Active,91,Custom gaskets and seals.,Raw Materials,97.0,0.2,Low,ISO 9001,480000,2024-02-08
+SUP-049,Hydro Hydraulics,Wendy Lead,hydrohydraulics@example.com,+1-555-432-1098,Active,92,Hydraulic systems and components.,Assemblies,97.5,0.1,Low,ISO 9001,750000,2024-03-22
+SUP-050,Industrial Insulators,Xavier Zinc,industrialinsulators@example.com,+1-555-876-5432,Active,84,Thermal and electrical insulation.,Raw Materials,92.0,1.0,Medium,None,220000,2023-10-08
+SUP-051,Joint Ventures,Yara Nickel,jointventures@example.com,+1-555-210-9876,Active,88,Specialized joint and coupling solutions.,Machined Parts,95.5,0.4,Medium,ISO 9001,340000,2023-11-15
+SUP-052,Kinetic Kits,Zane Platinum,kinetickits@example.com,+1-555-765-4321,Active,90,Motion control kits.,Assemblies,96.0,0.3,Low,ISO 9001,600000,2024-04-18
+SUP-053,Linear Logic,Anna Aluminum,linearlogic@example.com,+1-555-109-8765,Active,86,Linear motion systems.,Automation Equipment,93.0,0.9,Medium,None,450000,2023-12-02
+SUP-054,Mega Motors,Ben Copper,megamotors@example.com,+1-555-654-3210,Active,93,High-torque electric motors.,Electronic Components,98.0,0.1,Low,ISO 9001,1100000,2024-03-28
+SUP-055,New Age Nuts,Chloe Iron,newagenuts@example.com,+1-555-098-7654,Active,89,Advanced nut and bolt solutions.,Fasteners,95.0,0.5,Medium,ISO 9001,230000,2024-01-01
+SUP-056,Optical Optics,David Steel,opticaloptics@example.com,+1-555-543-2109,Active,94,Precision optical instruments.,Optical Components,98.5,0.05,Low,ISO 9001,400000,2024-04-03
+SUP-057,Power Pumps,Emily Lead,powerpumps@example.com,+1-555-987-0123,Active,91,High-pressure pumping systems.,Assemblies,97.0,0.2,Low,ISO 9001,800000,2024-02-22
+SUP-058,Quality Quench,Fred Zinc,qualityquench@example.com,+1-555-234-7890,Active,88,Heat treatment and quenching services.,Quality Services,95.5,0.4,Medium,ISO 9001,370000,2023-11-12
+SUP-059,Reliable Robotics,Gina Nickel,reliablerobotics@example.com,+1-555-876-1234,Active,95,Robotic arms and end effectors.,Automation Equipment,99.0,0.0,Low,ISO 9001,1300000,2024-05-05
+SUP-060,Sensor Solutions,Henry Platinum,sensorsolutions@example.com,+1-555-345-8901,Active,90,Custom sensor development.,Electronic Components,96.5,0.2,Low,ISO 9001,720000,2024-03-12
+SUP-061,Thermal Technologies,Isla Aluminum,thermaltechnologies@example.com,+1-555-901-4567,Active,87,Thermal management solutions.,Assemblies,94.0,0.6,Medium,None,520000,2023-12-25
+SUP-062,Ultimate Units,Jacob Bronze,ultimateunits@example.com,+1-555-123-7890,Active,88,Integrated modular units.,Assemblies,95.0,0.5,Medium,ISO 9001,680000,2024-01-15
+SUP-063,Valve Vision,Kate Copper,valvevision@example.com,+1-555-678-0123,Active,91,Fluid control valves.,Machined Parts,97.0,0.2,Low,ISO 9001,490000,2024-02-29
+SUP-064,Wire Wizards,Liam Iron,wirewizards@example.com,+1-555-012-4567,Active,86,Custom wiring harnesses.,Electronic Components,93.5,0.7,Medium,None,310000,2023-11-08
+SUP-065,Xenon X-Rays,Maya Steel,xenonxrays@example.com,+1-555-567-8901,Active,92,X-ray inspection systems.,Quality Services,97.5,0.1,Low,ISO 9001,900000,2024-03-07
+SUP-066,Yield Yielders,Noah Lead,yieldyielders@example.com,+1-555-987-6543,Active,89,Productivity and yield optimization.,Technology Services,96.0,0.3,Low,None,550000,2024-01-28
+SUP-067,Zero Zest,Olivia Zinc,zerozest@example.com,+1-555-432-1098,Active,85,Eco-friendly industrial cleaners.,Maintenance Supplies,92.0,1.0,Medium,ISO 14001,160000,2023-10-05
+SUP-068,Advance Alloys,Peter Nickel,advancealloys@example.com,+1-555-876-5432,Active,93,Advanced alloy development.,Raw Materials,98.0,0.1,Low,AS9100,850000,2024-04-12
+SUP-069,Bright Bearings,Quinn Platinum,brightbearings@example.com,+1-555-210-9876,Active,88,Low-friction bearings.,Machined Parts,95.5,0.4,Medium,ISO 9001,460000,2023-11-29
+SUP-070,Core Components,Rachel Aluminum,corecomponents@example.com,+1-555-765-4321,Active,90,Essential industrial components.,Electronic Components,96.5,0.2,Low,ISO 9001,700000,2024-03-09
+SUP-071,Digital Drives,Sam Bronze,digitaldrives@example.com,+1-555-109-8765,Active,91,Digital motor control systems.,Automation Equipment,97.0,0.1,Low,ISO 9001,880000,2024-02-03
+SUP-072,Eco-Friendly Enclosures,Tina Copper,ecofriendlyenclosures@example.com,+1-555-654-3210,Active,87,Sustainable enclosure solutions.,Fabricated Metals,94.0,0.6,Medium,ISO 14001,390000,2023-12-10
+SUP-073,Fluid Flow Filters,Uma Iron,fluidflowfilters@example.com,+1-555-098-7654,Active,88,High-efficiency fluid filters.,Maintenance Supplies,95.0,0.5,Medium,ISO 9001,270000,2024-01-08
+SUP-074,Gear Gurus,Victor Steel,geargurus@example.com,+1-555-543-2109,Active,92,Expert gear design and manufacturing.,Machined Parts,97.5,0.1,Low,ISO 9001,630000,2024-03-29
+SUP-075,Heat Handlers,Wendy Lead,heathandlers@example.com,+1-555-987-0123,Active,85,Industrial heat exchangers.,Assemblies,92.5,0.9,Medium,None,420000,2023-10-23
+SUP-076,Infra Integrators,Xavier Zinc,infraintegrators@example.com,+1-555-234-7890,Active,89,Infrastructure integration services.,Technology Services,95.5,0.4,Medium,None,780000,2024-02-25
+SUP-077,Jig Jockeys,Yara Nickel,jigjockeys@example.com,+1-555-876-1234,Active,86,Custom jigs and fixtures.,Tools & Dies,93.0,0.8,Medium,None,190000,2023-11-03
+SUP-078,Key Connectors,Zane Platinum,keyconnectors@example.com,+1-555-345-8901,Active,94,Critical electrical connectors.,Electronic Components,98.0,0.05,Low,ISO 9001,980000,2024-04-08
+SUP-079,Laser Light Labs,Anna Aluminum,laserlightlabs@example.com,+1-555-901-4567,Active,90,Laser cutting and engraving services.,Quality Services,96.5,0.2,Low,ISO 9001,580000,2024-03-02
+SUP-080,Material Masters,Ben Copper,materialmasters@example.com,+1-555-123-7890,Active,87,Specialty material sourcing.,Raw Materials,94.0,0.6,Medium,None,350000,2023-12-07
+SUP-081,Nano Networks,Chloe Iron,nanonetworks@example.com,+1-555-678-0123,Active,91,Nanotechnology components.,Electronic Components,97.0,0.1,Low,ISO 9001,820000,2024-01-19
+SUP-082,Opti-Flow,David Steel,optiflow@example.com,+1-555-012-4567,Active,88,Optimized fluid flow systems.,Assemblies,95.0,0.5,Medium,ISO 9001,500000,2023-12-23
+SUP-083,Precision Parts,Emily Lead,precisionparts@example.com,+1-555-567-8901,Active,93,High-tolerance machined parts.,Machined Parts,98.0,0.1,Low,AS9100,750000,2024-03-14
+SUP-084,Quick Quads,Fred Zinc,quickquads@example.com,+1-555-987-6543,Active,86,Rapid assembly of quadcopters.,Assemblies,93.5,0.7,Medium,None,250000,2023-11-21
+SUP-085,Robo-Solutions,Gina Nickel,robosolutions@example.com,+1-555-432-1098,Active,95,Comprehensive robotics solutions.,Automation Equipment,99.0,0.0,Low,ISO 9001,1400000,2024-05-08
+SUP-086,Smart Sensors,Henry Platinum,smartsensors@example.com,+1-555-876-5432,Active,90,IoT-enabled sensors.,Electronic Components,96.0,0.3,Low,ISO 9001,680000,2024-02-17
+SUP-087,Tool Titans,Isla Aluminum,tooltitans@example.com,+1-555-210-9876,Active,87,Heavy-duty industrial tools.,Tools & Dies,94.5,0.6,Medium,ISO 9001,300000,2023-12-12
+SUP-088,Universal Units,Jacob Bronze,universalunits@example.com,+1-555-765-4321,Active,88,Versatile modular components.,Assemblies,95.5,0.4,Medium,ISO 9001,520000,2024-01-22
+SUP-089,Vortex Valves,Kate Copper,vortexvalves@example.com,+1-555-109-8765,Active,91,High-performance industrial valves.,Machined Parts,97.0,0.2,Low,ISO 9001,500000,2024-03-06
+SUP-090,Welding Wonders,Liam Iron,weldingwonders@example.com,+1-555-654-3210,Active,89,Specialized welding services.,Fabricated Metals,96.0,0.3,Low,None,410000,2024-01-02
+SUP-091,Xtreme X-Ray,Maya Steel,xtremexray@example.com,+1-555-098-7654,Active,92,High-resolution X-ray imaging.,Quality Services,97.5,0.1,Low,ISO 9001,800000,2024-03-31
+SUP-092,Yellow Yield,Noah Lead,yellowyield@example.com,+1-555-543-2109,Active,85,Crop yield optimization solutions.,Technology Services,92.0,1.0,Medium,None,220000,2023-10-10
+SUP-093,Zippy Zaps,Olivia Zinc,zippyzaps@example.com,+1-555-987-0123,Active,88,Fast and efficient electrical components.,Electronic Components,95.0,0.5,Medium,ISO 9001,360000,2023-11-27
+SUP-094,Aero Alloys,Peter Nickel,aeroalloys@example.com,+1-555-234-7890,Active,93,Aerospace-grade alloys.,Raw Materials,98.0,0.1,Low,AS9100,900000,2024-04-02
+SUP-095,Bolt Busters,Quinn Platinum,boltbusters@example.com,+1-555-876-1234,Active,86,Heavy-duty bolt removal tools.,Tools & Dies,93.5,0.7,Medium,None,170000,2023-11-06
+SUP-096,Cable Kings,Rachel Aluminum,cablekings@example.com,+1-555-345-8901,Active,89,Industrial cabling solutions.,Electronic Components,95.0,0.4,Medium,ISO 9001,430000,2024-02-12
+SUP-097,Drive Dynamics,Sam Bronze,drivedynamics@example.com,+1-555-901-4567,Active,90,Advanced drive systems.,Automation Equipment,96.5,0.2,Low,ISO 9001,800000,2024-03-11
+SUP-098,Energy Enablers,Tina Copper,energyenablers@example.com,+1-555-123-7890,Active,87,Energy-efficient industrial solutions.,Technology Services,94.0,0.6,Medium,ISO 14001,600000,2023-12-18
+SUP-099,Filter Force,Uma Iron,filterforce@example.com,+1-555-678-0123,Active,88,High-capacity filtration systems.,Maintenance Supplies,95.5,0.4,Medium,ISO 9001,320000,2024-01-24
+SUP-100,Gear Geniuses,Victor Steel,geargeniuses@example.com,+1-555-012-4567,Active,91,Innovative gear technologies.,Machined Parts,97.0,0.1,Low,ISO 9001,650000,2024-03-24
