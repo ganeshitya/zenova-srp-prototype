@@ -494,10 +494,15 @@ notification_columns = [
 ]
 initialize_csv(NOTIFICATIONS_FILE, notification_columns) # NEW
 initialize_csv(FILES_FILE, ["filename", "type", "size", "uploader", "timestamp", "path"])
-project_columns = ["task_id", "task_name", "status", "assigned_to", "due_date", "description", "input_pending"]
+
+# --- MODIFIED: Added 'is_esg_project' for Sustainability Tracking ---
+project_columns = ["task_id", "task_name", "status", "assigned_to", "due_date", "description", "input_pending", "is_esg_project"]
 initialize_csv(PROJECTS_FILE, project_columns)
-asset_columns = ["asset_id", "asset_name", "location", "status", "eol_date", "calibration_date", "notes", "supplier"]
+
+# --- MODIFIED: Added 'last_active_date' for AI Co-pilot (Idle Assets) ---
+asset_columns = ["asset_id", "asset_name", "location", "status", "eol_date", "calibration_date", "notes", "supplier", "last_active_date"]
 initialize_csv(ASSETS_FILE, asset_columns)
+
 audit_columns = ["audit_id", "point_description", "status", "assignee", "due_date", "resolution", "input_pending"]
 initialize_csv(AUDITS_FILE, audit_columns)
 event_columns = [
@@ -509,11 +514,14 @@ file_comment_columns = [
     "comment_id", "file_name", "parent_comment_id", "author", "timestamp", "comment_text", "mentions" # mentions: list of roles
 ]
 initialize_csv(FILE_COMMENTS_FILE, file_comment_columns) # NEW FILE COMMENTS
+
+# --- MODIFIED: Added ESG-related columns for Sustainability Tracking & Gamification ---
 supplier_columns = [
     "supplier_id", "supplier_name", "contact_person", "email", "phone",
     "agreement_status", "last_audit_score", "notes",
     "primary_product_category", "on_time_delivery_rate", "quality_reject_rate",
-    "risk_level", "certification", "annual_spend_usd", "last_performance_review_date"
+    "risk_level", "certification", "annual_spend_usd", "last_performance_review_date",
+    "esg_compliance_score", "emissions_target_met" # NEW ESG Columns
 ]
 initialize_csv(SUPPLIER_DUMMY_DATA_FILE, supplier_columns)
 
@@ -588,6 +596,226 @@ with tabs[0]: # Corresponding to "📊 OEM Dashboard"
         supplier_df = load_data(SUPPLIER_DUMMY_DATA_FILE, columns=supplier_columns)
 
         st.markdown("---")
+        st.subheader("💡 AI Co-pilot Insights")
+        st.markdown("Automated recommendations to highlight critical areas and suggest actions.")
+        current_date = datetime.now()
+
+        col_ai1, col_ai2 = st.columns(2)
+
+        with col_ai1:
+            # --- AI Co-pilot Recommendation 1: Idle Assets ---
+            if not assets_df.empty and 'last_active_date' in assets_df.columns:
+                try:
+                    assets_df['last_active_date'] = pd.to_datetime(assets_df['last_active_date'], errors='coerce')
+                    idle_threshold_days = 60 # Example threshold
+                    idle_assets = assets_df[
+                        (assets_df['status'] == 'Operational') & # Only operational assets can be idle
+                        (current_date - assets_df['last_active_date']).dt.days > idle_threshold_days
+                    ]
+                    if not idle_assets.empty:
+                        st.warning(f"**Action Required:** {len(idle_assets)} assets are idle for over {idle_threshold_days} days. Review their utilization.")
+                        with st.expander("View Idle Assets"):
+                            st.dataframe(idle_assets[['asset_name', 'location', 'status', 'last_active_date']], use_container_width=True, hide_index=True)
+                    else:
+                        st.info(f"No operational assets have been idle for over {idle_threshold_days} days.")
+                except Exception as e:
+                    st.error(f"Error checking idle assets: {e}")
+            else:
+                st.info("To enable idle asset tracking, ensure 'last_active_date' column is available and populated in Asset Management.")
+            
+            st.markdown("---") # Separator for better layout
+            # --- AI Co-pilot Recommendation 2: Overdue Projects/Tasks ---
+            if not projects_df.empty and 'due_date' in projects_df.columns:
+                try:
+                    projects_df['due_date'] = pd.to_datetime(projects_df['due_date'], errors='coerce')
+                    overdue_tasks = projects_df[
+                        (projects_df['status'] != 'Completed') &
+                        (projects_df['due_date'] < current_date)
+                    ]
+                    if not overdue_tasks.empty:
+                        st.error(f"**Urgent:** {len(overdue_tasks)} projects/tasks are overdue. Prioritize immediate action.")
+                        with st.expander("View Overdue Tasks"):
+                            st.dataframe(overdue_tasks[['task_name', 'assigned_to', 'due_date', 'status']], use_container_width=True, hide_index=True)
+                    else:
+                        st.success("All active projects/tasks are currently on track.")
+                except Exception as e:
+                    st.error(f"Error checking overdue projects: {e}")
+
+        with col_ai2:
+            # --- AI Co-pilot Recommendation 3: Low Performing Suppliers (e.g., Quality Reject Rate) ---
+            if not supplier_df.empty and 'quality_reject_rate' in supplier_df.columns:
+                try:
+                    reject_threshold = 1.5 # Example threshold: more than 1.5% reject rate
+                    low_quality_suppliers = supplier_df[supplier_df['quality_reject_rate'] > reject_threshold]
+                    if not low_quality_suppliers.empty:
+                        st.warning(f"**Review Needed:** {len(low_quality_suppliers)} suppliers have a Quality Reject Rate exceeding {reject_threshold}%.")
+                        with st.expander("View Suppliers with High Reject Rates"):
+                            st.dataframe(low_quality_suppliers[['supplier_name', 'quality_reject_rate', 'last_performance_review_date']], use_container_width=True, hide_index=True)
+                    else:
+                        st.success(f"All suppliers currently meet the quality reject rate target of {reject_threshold}%.")
+                except Exception as e:
+                    st.error(f"Error checking low performing suppliers: {e}")
+
+            st.markdown("---") # Separator for better layout
+            # --- AI Co-pilot Recommendation 4: Audits Due Soon or Overdue ---
+            if not audits_df.empty and 'due_date' in audits_df.columns:
+                try:
+                    audits_df['due_date'] = pd.to_datetime(audits_df['due_date'], errors='coerce')
+                    upcoming_audits = audits_df[
+                        (audits_df['status'] != 'Completed') &
+                        (audits_df['due_date'] >= current_date) &
+                        (audits_df['due_date'] <= current_date + timedelta(days=30))
+                    ]
+                    overdue_audits = audits_df[
+                        (audits_df['status'] != 'Completed') &
+                        (audits_df['due_date'] < current_date)
+                    ]
+
+                    if not overdue_audits.empty:
+                        st.error(f"**Urgent:** {len(overdue_audits)} audits are overdue. Ensure immediate follow-up.")
+                        with st.expander("View Overdue Audits"):
+                            st.dataframe(overdue_audits[['point_description', 'assignee', 'due_date', 'status']], use_container_width=True, hide_index=True)
+
+                    if not upcoming_audits.empty:
+                        st.info(f"**Heads Up:** {len(upcoming_audits)} audits are due in the next 30 days. Plan accordingly.")
+                        with st.expander("View Upcoming Audits"):
+                            st.dataframe(upcoming_audits[['point_description', 'assignee', 'due_date', 'status']], use_container_width=True, hide_index=True)
+                    else:
+                        st.success("No audits are currently overdue or due in the next 30 days.")
+                except Exception as e:
+                    st.error(f"Error checking audits: {e}")
+
+        # --- Sustainability Tracking (ESG KPIs) ---
+        st.markdown("---")
+        st.subheader("🌍 Sustainability & ESG Monitoring")
+        st.markdown("Tracking your environmental, social, and governance (ESG) performance.")
+
+        col_esg1, col_esg2 = st.columns(2)
+
+        with col_esg1:
+            # ESG Project Delays
+            if not projects_df.empty and 'is_esg_project' in projects_df.columns:
+                try:
+                    # Ensure due_date is datetime and is_esg_project is boolean
+                    projects_df['due_date'] = pd.to_datetime(projects_df['due_date'], errors='coerce')
+                    projects_df['is_esg_project'] = projects_df['is_esg_project'].astype(bool)
+
+                    esg_project_delays = projects_df[
+                        (projects_df['is_esg_project'] == True) &
+                        (projects_df['status'] != 'Completed') &
+                        (projects_df['due_date'] < current_date)
+                    ]
+                    if not esg_project_delays.empty:
+                        st.error(f"**Sustainability Alert:** {len(esg_project_delays)} ESG-related projects are overdue, potentially impacting sustainability KPIs.")
+                        with st.expander("View Delayed ESG Projects"):
+                            st.dataframe(esg_project_delays[['task_name', 'assigned_to', 'due_date', 'description']], use_container_width=True, hide_index=True)
+                    else:
+                        st.success("All ESG-related projects are currently on track.")
+                except Exception as e:
+                    st.error(f"Error checking ESG project delays: {e}")
+            else:
+                st.info("No ESG project data available. Mark projects as 'ESG-related' in Project Management.")
+
+        with col_esg2:
+            # Supplier ESG Compliance (requires new columns in supplier_dummy_data.csv)
+            if not supplier_df.empty and 'esg_compliance_score' in supplier_df.columns:
+                try:
+                    low_esg_score_threshold = 70 # Example threshold
+                    non_compliant_suppliers = supplier_df[supplier_df['esg_compliance_score'] < low_esg_score_threshold]
+                    if not non_compliant_suppliers.empty:
+                        st.warning(f"**Sustainability Watch:** {len(non_compliant_suppliers)} suppliers have an ESG compliance score below {low_esg_score_threshold}.")
+                        with st.expander("View Suppliers with Low ESG Scores"):
+                            st.dataframe(non_compliant_suppliers[['supplier_name', 'esg_compliance_score', 'certification']], use_container_width=True, hide_index=True)
+                    else:
+                        st.success(f"All suppliers currently meet the ESG compliance score target of {low_esg_score_threshold}.")
+
+                    # Example: Suppliers not meeting emissions target
+                    if 'emissions_target_met' in supplier_df.columns:
+                        not_met_emissions = supplier_df[supplier_df['emissions_target_met'] == False]
+                        if not not_met_emissions.empty:
+                            st.warning(f"**Environmental Focus:** {len(not_met_emissions)} suppliers have not met their emissions reduction targets.")
+                            with st.expander("View Suppliers Not Meeting Emissions Targets"):
+                                st.dataframe(not_met_emissions[['supplier_name', 'emissions_target_met']], use_container_width=True, hide_index=True)
+                        else:
+                            st.success("All suppliers are meeting their emissions reduction targets.")
+
+                except Exception as e:
+                    st.error(f"Error checking supplier ESG compliance: {e}")
+            else:
+                st.info("No supplier ESG data available. Add 'esg_compliance_score' and 'emissions_target_met' to supplier records.")
+
+        # --- Gamification - Badges for Suppliers ---
+        st.markdown("---")
+        st.subheader("🏅 Supplier Recognition & Gamification")
+        st.markdown("Recognize and reward your suppliers for outstanding performance.")
+
+        if not supplier_df.empty:
+            gamified_suppliers = supplier_df.copy()
+
+            # Define badge criteria and apply
+            # Badge 1: On-Time Delivery Champion
+            otd_threshold = 98.0
+            gamified_suppliers['OTD Champion 🏆'] = gamified_suppliers['on_time_delivery_rate'] >= otd_threshold
+
+            # Badge 2: Zero Quality Deviations
+            reject_threshold = 0.1 # Very low reject rate for 'zero'
+            gamified_suppliers['Quality Star ⭐'] = gamified_suppliers['quality_reject_rate'] <= reject_threshold
+
+            # Badge 3: Perfect Audit Score (assuming 100 is perfect)
+            perfect_audit_score = 100
+            gamified_suppliers['Audit Excellence 💯'] = gamified_suppliers['last_audit_score'] == perfect_audit_score
+
+            # Badge 4: Low Risk Partner
+            gamified_suppliers['Low Risk Partner ✅'] = gamified_suppliers['risk_level'] == 'Low'
+
+            st.markdown("### Supplier Badges Overview")
+            col_badges1, col_badges2, col_badges3, col_badges4 = st.columns(4)
+            with col_badges1:
+                st.metric("OTD Champions", f"{gamified_suppliers['OTD Champion 🏆'].sum()} / {len(gamified_suppliers)}", help=f"Suppliers with On-Time Delivery Rate >= {otd_threshold}%")
+            with col_badges2:
+                st.metric("Quality Stars", f"{gamified_suppliers['Quality Star ⭐'].sum()} / {len(gamified_suppliers)}", help=f"Suppliers with Quality Reject Rate <= {reject_threshold}%")
+            with col_badges3:
+                st.metric("Audit Excellence", f"{gamified_suppliers['Audit Excellence 💯'].sum()} / {len(gamified_suppliers)}", help=f"Suppliers with Last Audit Score of {perfect_audit_score}")
+            with col_badges4:
+                st.metric("Low Risk Partners", f"{gamified_suppliers['Low Risk Partner ✅'].sum()} / {len(gamified_suppliers)}", help=f"Suppliers categorized as 'Low' risk")
+
+
+            st.markdown("### Detailed Supplier Badge Status")
+            # Select columns to display for gamification summary
+            badge_display_cols = ['supplier_name', 'on_time_delivery_rate', 'quality_reject_rate', 'last_audit_score', 'risk_level',
+                                  'OTD Champion 🏆', 'Quality Star ⭐', 'Audit Excellence 💯', 'Low Risk Partner ✅']
+
+            st.dataframe(gamified_suppliers[badge_display_cols], use_container_width=True, hide_index=True)
+
+            st.markdown("---")
+            st.markdown("#### Send a Recognition!")
+            selected_supplier_name = st.selectbox("Select a supplier to recognize:", [''] + supplier_df['supplier_name'].tolist(), key="recognize_supplier_select")
+            if selected_supplier_name:
+                recognition_message = st.text_area(f"Enter recognition message for {selected_supplier_name}:", key="recognition_message_text")
+                if st.button("Send Recognition Message", key="send_recognition_btn"):
+                    if recognition_message:
+                        notification_id = "NOTIF" + str(len(st.session_state.notifications_df) + 1).zfill(4)
+                        new_notification = pd.DataFrame([{
+                            "notification_id": notification_id,
+                            "sender_role": user_role,
+                            "recipient_role": selected_supplier_name, # Assuming recipient_role can be a specific supplier
+                            "subject": f"Recognition for Excellence - {selected_supplier_name}",
+                            "message": recognition_message,
+                            "timestamp": datetime.now().isoformat(),
+                            "status": "Sent",
+                            "parent_notification_id": None
+                        }])
+                        append_data(NOTIFICATIONS_FILE, new_notification)
+                        st.session_state.notifications_df = load_data(NOTIFICATIONS_FILE, columns=notification_columns) # Reload
+                        st.success(f"Recognition message sent to {selected_supplier_name}!")
+                        # Clear message area after sending (requires a small workaround for st.text_area)
+                        # st.session_state.recognition_message_text = "" # This might not clear immediately
+                    else:
+                        st.warning("Please enter a recognition message.")
+        else:
+            st.info("No supplier data available to apply gamification.")
+
+        st.markdown("---")
         st.subheader("Supplier Performance & Financial Overview")
         # Removed search bar here
         if not supplier_df.empty:
@@ -606,8 +834,8 @@ with tabs[0]: # Corresponding to "📊 OEM Dashboard"
                     status_counts = supplier_df['agreement_status'].value_counts().reset_index()
                     status_counts.columns = ['Status', 'Count']
                     fig_status = px.pie(status_counts, values='Count', names='Status',
-                                        title='Distribution of Supplier Agreement Status', hole=0.3,
-                                        template='plotly_dark') # Set dark theme for Plotly
+                                         title='Distribution of Supplier Agreement Status', hole=0.3,
+                                         template='plotly_dark') # Set dark theme for Plotly
                     fig_status.update_traces(textposition='inside', textinfo='percent+label')
                     fig_status.update_layout(showlegend=True, margin=dict(l=20, r=20, t=30, b=20), height=300)
                     st.plotly_chart(fig_status, use_container_width=True)
@@ -618,10 +846,10 @@ with tabs[0]: # Corresponding to "📊 OEM Dashboard"
                 st.markdown("#### 💯 Last Audit Score Distribution")
                 if not supplier_df.empty and 'last_audit_score' in supplier_df.columns:
                     fig_audit_dist = px.histogram(supplier_df, x='last_audit_score', nbins=10,
-                                                 title='Distribution of Last Audit Scores',
-                                                 labels={'last_audit_score': 'Audit Score'},
-                                                 color_discrete_sequence=['#1890FF'],
-                                                 template='plotly_dark') # Set dark theme for Plotly
+                                                  title='Distribution of Last Audit Scores',
+                                                  labels={'last_audit_score': 'Audit Score'},
+                                                  color_discrete_sequence=['#1890FF'],
+                                                  template='plotly_dark') # Set dark theme for Plotly
                     fig_audit_dist.update_layout(bargap=0.1, margin=dict(l=20, r=20, t=30, b=20), height=300)
                     st.plotly_chart(fig_audit_dist, use_container_width=True)
                 else:
@@ -649,8 +877,8 @@ with tabs[0]: # Corresponding to "📊 OEM Dashboard"
                     avg_reject = supplier_df['quality_reject_rate'].mean()
                     st.metric(label="Overall Reject Rate", value=f"{avg_reject:.2f}%", delta="Low" if avg_reject < 0.5 else "High" if avg_reject > 1.0 else None, delta_color="inverse")
                     fig_reject = px.box(supplier_df, y='quality_reject_rate', title='Quality Reject Rate Distribution',
-                                        color_discrete_sequence=['#FF4D4F'],
-                                        template='plotly_dark') # Set dark theme for Plotly
+                                         color_discrete_sequence=['#FF4D4F'],
+                                         template='plotly_dark') # Set dark theme for Plotly
                     fig_reject.update_layout(margin=dict(l=20, r=20, t=30, b=20), height=250)
                     st.plotly_chart(fig_reject, use_container_width=True)
                 else:
@@ -739,200 +967,64 @@ with tabs[0]: # Corresponding to "📊 OEM Dashboard"
                 if not supplier_df.empty:
                     supplier_df['last_performance_review_date'] = pd.to_datetime(supplier_df['last_performance_review_date'], errors='coerce')
                     overdue_reviews = supplier_df[
-                        (supplier_df['last_performance_review_date'].notna()) &
-                        (supplier_df['last_performance_review_date'] < (datetime.today() - timedelta(days=365)))
+                        (current_date - supplier_df['last_performance_review_date']).dt.days > 365
                     ]
                     if not overdue_reviews.empty:
-                        st.dataframe(overdue_reviews[['supplier_name', 'contact_person', 'email', 'last_performance_review_date']],
+                        st.warning(f"**Action Required:** {len(overdue_reviews)} supplier performance reviews are overdue.")
+                        st.dataframe(overdue_reviews[['supplier_name', 'contact_person', 'last_performance_review_date']],
                                      use_container_width=True, hide_index=True)
                     else:
-                        st.success("✅ All supplier performance reviews are up-to-date (within the last year).")
+                        st.success("All supplier performance reviews are up-to-date.")
                 else:
-                    st.info("No supplier data to check for overdue reviews.")
-
-
-        st.markdown("---")
-        st.subheader("Operational Status Overview")
-
-        with st.container():
-            col_ops1, col_ops2, col_ops3 = st.columns(3)
-
-            with col_ops1:
-                st.markdown("##### 🚀 Project Task Status")
-                if not projects_df.empty:
-                    projects_df['status'] = projects_df['status'].fillna('Unknown').astype(str)
-                    task_status_counts = projects_df['status'].value_counts().reset_index()
-                    task_status_counts.columns = ['Status', 'Count']
-                    fig_tasks = px.pie(task_status_counts, values='Count', names='Status',
-                                       title='Project Task Distribution', hole=0.3,
-                                       template='plotly_dark') # Set dark theme for Plotly
-                    fig_tasks.update_traces(textposition='inside', textinfo='percent+label')
-                    fig_tasks.update_layout(showlegend=False, margin=dict(l=20, r=20, t=30, b=20), height=250)
-                    st.plotly_chart(fig_tasks, use_container_width=True)
-                else:
-                    st.info("No project task data. Add tasks in '📅 Project Management'.")
-
-            with col_ops2:
-                st.markdown("##### 📦 Asset Status")
-                if not assets_df.empty:
-                    assets_df['status'] = assets_df['status'].fillna('Unknown').astype(str)
-                    asset_status_counts = assets_df['status'].value_counts().reset_index()
-                    asset_status_counts.columns = ['Status', 'Count']
-                    fig_assets = px.pie(asset_status_counts, values='Count', names='Status',
-                                        title='Asset Status Distribution', hole=0.3,
-                                        template='plotly_dark') # Set dark theme for Plotly
-                    fig_assets.update_traces(textposition='inside', textinfo='percent+label')
-                    fig_assets.update_layout(showlegend=False, margin=dict(l=20, r=20, t=30, b=20), height=250)
-                    st.plotly_chart(fig_assets, use_container_width=True)
-                else:
-                    st.info("No asset data. Add assets in '🛠️ Asset Management'.")
-
-            with col_ops3:
-                st.markdown("##### ✅ Audit Point Status")
-                if not audits_df.empty:
-                    audits_df['status'] = audits_df['status'].fillna('Unknown').astype(str)
-                    audit_status_counts = audits_df['status'].value_counts().reset_index()
-                    audit_status_counts.columns = ['Status', 'Count']
-                    fig_audits = px.pie(audit_status_counts, values='Count', names='Status',
-                                        title='Audit Point Distribution', hole=0.3,
-                                        template='plotly_dark') # Set dark theme for Plotly
-                    fig_audits.update_traces(textposition='inside', textinfo='percent+label')
-                    fig_audits.update_layout(showlegend=False, margin=dict(l=20, r=20, t=30, b=20), height=250)
-                    st.plotly_chart(fig_audits, use_container_width=True)
-                else:
-                    st.info("No audit data. Add audit points in '📋 Audit Management'.")
-
-        st.markdown("---")
-        with st.container():
-            st.markdown("#### ⏱️ Key Performance Metrics")
-            col_metrics1, col_metrics2 = st.columns(2)
-
-            with col_metrics1:
-                st.markdown("##### Avg. Project Delivery Time")
-                if not projects_df.empty:
-                    projects_df['due_date'] = pd.to_datetime(projects_df['due_date'], errors='coerce')
-                    active_tasks = projects_df[
-                        projects_df['status'].isin(["Open", "Work In Progress", "Pending Review"]) &
-                        projects_df['due_date'].notna()
-                    ].copy()
-
-                    if not active_tasks.empty:
-                        active_tasks['days_remaining'] = (active_tasks['due_date'] - datetime.today()).dt.days
-                        positive_days_remaining = active_tasks[active_tasks['days_remaining'] >= 0]
-                        if not positive_days_remaining.empty:
-                            avg_days = positive_days_remaining['days_remaining'].mean()
-                            st.metric(label="Days to Deliver (Active Tasks)", value=f"{avg_days:.1f} days")
-                        else:
-                            st.info("All active tasks are past their due date or have no future due date.")
-                    else:
-                        st.info("No active tasks to calculate average time to deliver.")
-                else:
-                    st.info("No project data to calculate time to deliver.")
-
-            with col_metrics2:
-                st.markdown("##### 📥 Inputs Pending")
-                total_pending_input = 0
-                if not projects_df.empty:
-                    projects_df['input_pending'] = projects_df['input_pending'].fillna('No').astype(str)
-                    project_inputs_pending = projects_df[projects_df['input_pending'] == "Yes"].shape[0]
-                    total_pending_input += project_inputs_pending
-                    st.markdown(f"- **Project Tasks:** `{project_inputs_pending}` pending input")
-
-                if not audits_df.empty:
-                    audits_df['input_pending'] = audits_df['input_pending'].fillna('No').astype(str)
-                    audit_inputs_pending = audits_df[audits_df['input_pending'] == "Yes"].shape[0]
-                    total_pending_input += audit_inputs_pending
-                    st.markdown(f"- **Audit Points:** `{audit_inputs_pending}` pending input")
-
-                if projects_df.empty and audits_df.empty:
-                    st.info("No project or audit data to check for pending inputs.")
-                elif total_pending_input == 0:
-                    st.success("🎉 No inputs are currently pending!")
-                st.metric(label="Total Pending Inputs", value=f"{total_pending_input}")
-
-        st.markdown("---")
-        with st.container():
-            st.markdown("#### 🔗 Supplier-Associated Assets")
-            if not assets_df.empty:
-                assets_df['supplier'] = assets_df['supplier'].fillna('Unassigned').astype(str)
-                parts_by_supplier = assets_df.groupby('supplier').size().reset_index(name='Number of Assets')
-                fig_parts = px.bar(parts_by_supplier, x='supplier', y='Number of Assets',
-                                   title='Assets Managed by Each Supplier', color='supplier',
-                                   color_discrete_sequence=px.colors.qualitative.Bold,
-                                   template='plotly_dark') # Set dark theme for Plotly
-                fig_parts.update_layout(margin=dict(l=20, r=20, t=30, b=20), height=300)
-                st.plotly_chart(fig_parts, use_container_width=True)
-            else:
-                st.info("No asset data to show supplier parts breakdown. Add assets in '🛠️ Asset Management'.")
+                    st.info("No supplier data to check for overdue performance reviews.")
 
 
 # --- Supplier Records Module ---
 with tabs[1]: # Corresponding to "👥 Supplier Records"
-    st.subheader("Supplier Records")
-    st.markdown("View and manage detailed information about your valued suppliers. This comprehensive database enables efficient supplier relationship management.")
+    st.subheader("Manage Supplier Information")
+    st.markdown("Maintain a comprehensive database of all your OEM suppliers.")
 
     supplier_df = load_data(SUPPLIER_DUMMY_DATA_FILE, columns=supplier_columns)
-    
-    st.markdown("---")
-    st.subheader("Current Supplier Database")
-    # Apply search and filter to supplier_df
-    filtered_supplier_df = apply_search_and_filter(supplier_df, "supplier_records_search", "supplier_records_advance_search")
 
-    if not filtered_supplier_df.empty:
-        st.dataframe(filtered_supplier_df, use_container_width=True, hide_index=True)
+    if user_role not in ["OEM"]:
+        st.warning("🔒 You must be logged in as 'OEM' to manage supplier records.")
     else:
-        st.info("No supplier records available or no records matching your search/filter criteria. Please add new suppliers below.")
+        st.markdown("### Add New Supplier")
+        with st.form("new_supplier_form"):
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                new_supplier_name = st.text_input("Supplier Name", key="new_sup_name")
+                new_contact_person = st.text_input("Contact Person", key="new_sup_contact")
+                new_email = st.text_input("Email", key="new_sup_email")
+            with col2:
+                new_phone = st.text_input("Phone", key="new_sup_phone")
+                new_agreement_status = st.selectbox("Agreement Status", ["Active", "Pending Renewal", "Expired", "Under Review"], key="new_sup_agreement")
+                new_product_category = st.text_input("Primary Product Category", help="e.g., Electronics, Raw Materials, Assembly", key="new_sup_prod_cat")
+            with col3:
+                new_last_audit_score = st.number_input("Last Audit Score (0-100)", min_value=0, max_value=100, value=75, key="new_sup_audit_score")
+                new_on_time_delivery = st.number_input("On-Time Delivery Rate (%)", min_value=0.0, max_value=100.0, value=95.0, key="new_sup_otd")
+                new_quality_reject = st.number_input("Quality Reject Rate (%)", min_value=0.0, max_value=100.0, value=0.5, format="%.2f", key="new_sup_reject")
+            
+            # --- NEW: ESG Fields for Supplier ---
+            col_esg_sup1, col_esg_sup2 = st.columns(2)
+            with col_esg_sup1:
+                new_esg_score = st.number_input("ESG Compliance Score (0-100)", min_value=0, max_value=100, value=70, key="new_sup_esg_score")
+            with col_esg_sup2:
+                new_emissions_target_met = st.checkbox("Met Emissions Reduction Target?", value=False, key="new_sup_emissions_met")
 
-    st.markdown("---")
-    with st.container():
-        st.subheader("Add New Supplier Record")
-        with st.expander("Click to add a new supplier", expanded=False):
-            with st.form("new_supplier_form", clear_on_submit=True):
-                col_s1, col_s2, col_s3 = st.columns(3)
-                with col_s1:
-                    new_supplier_id = st.text_input("Supplier ID (e.g., SUP-006)", placeholder="e.g., SUP-001")
-                with col_s2:
-                    new_supplier_name = st.text_input("Supplier Name", placeholder="e.g., Global Parts Inc.")
-                with col_s3:
-                    new_contact_person = st.text_input("Contact Person", placeholder="e.g., Alice Smith")
+            new_risk_level = st.selectbox("Risk Level", ["Low", "Medium", "High"], key="new_sup_risk")
+            new_certification = st.text_input("Certifications (e.g., ISO 9001)", key="new_sup_cert")
+            new_annual_spend = st.number_input("Annual Spend (USD)", min_value=0, value=100000, key="new_sup_annual_spend")
+            new_notes = st.text_area("Notes", key="new_sup_notes")
+            new_last_performance_review_date = st.date_input("Last Performance Review Date", value=datetime.today() - timedelta(days=90), key="new_sup_perf_date")
 
-                col_s4, col_s5, col_s6 = st.columns(3)
-                with col_s4:
-                    new_email = st.text_input("Email", placeholder="e.g., info@supplier.com")
-                with col_s5:
-                    new_phone = st.text_input("Phone", placeholder="+1-555-123-4567")
-                with col_s6:
-                    new_agreement_status = st.selectbox("Agreement Status", ["Active", "Pending Renewal", "Terminated", "On Hold"])
+            submit_supplier = st.form_submit_button("Add Supplier")
 
-                new_last_audit_score = st.number_input("Last Audit Score (0-100)", min_value=0, max_value=100, value=80, key="new_last_audit_score")
-                new_notes = st.text_area("Notes", placeholder="Any important notes about this supplier...")
-
-                st.markdown("#### Additional Supplier Details:")
-                col_s7, col_s8, col_s9 = st.columns(3)
-                with col_s7:
-                    new_primary_product_category = st.text_input("Primary Product Category", placeholder="e.g., Raw Materials, Electronic Components")
-                with col_s8:
-                    new_on_time_delivery_rate = st.slider("On-Time Delivery Rate (%)", min_value=0.0, max_value=100.0, value=95.0, step=0.1)
-                with col_s9:
-                    new_quality_reject_rate = st.slider("Quality Reject Rate (%)", min_value=0.0, max_value=10.0, value=0.5, step=0.1)
-
-                col_s10, col_s11 = st.columns(2)
-                with col_s10:
-                    new_risk_level = st.selectbox("Risk Level", ["Low", "Medium", "High"])
-                with col_s11:
-                    new_certification = st.text_input("Certifications (comma-separated)", placeholder="e.g., ISO 9001, IATF 16949")
-
-                col_s12, col_s13 = st.columns(2)
-                with col_s12:
-                    new_annual_spend_usd = st.number_input("Annual Spend (USD)", min_value=0, value=100000, step=10000, format="%d")
-                with col_s13:
-                    new_last_performance_review_date = st.date_input("Last Performance Review Date", value=None, key="new_last_performance_review_date")
-
-                supplier_submitted = st.form_submit_button("➕ Add Supplier Record")
-
-                if supplier_submitted and new_supplier_id and new_supplier_name:
-                    new_supplier_entry = {
-                        "supplier_id": new_supplier_id,
+            if submit_supplier:
+                if new_supplier_name and new_contact_person and new_email:
+                    supplier_id = "SUP" + str(len(supplier_df) + 1).zfill(4)
+                    new_entry = pd.DataFrame([{
+                        "supplier_id": supplier_id,
                         "supplier_name": new_supplier_name,
                         "contact_person": new_contact_person,
                         "email": new_email,
@@ -940,697 +1032,932 @@ with tabs[1]: # Corresponding to "👥 Supplier Records"
                         "agreement_status": new_agreement_status,
                         "last_audit_score": new_last_audit_score,
                         "notes": new_notes,
-                        "primary_product_category": new_primary_product_category,
-                        "on_time_delivery_rate": new_on_time_delivery_rate,
-                        "quality_reject_rate": new_quality_reject_rate,
+                        "primary_product_category": new_product_category,
+                        "on_time_delivery_rate": new_on_time_delivery,
+                        "quality_reject_rate": new_quality_reject,
                         "risk_level": new_risk_level,
                         "certification": new_certification,
-                        "annual_spend_usd": new_annual_spend_usd,
-                        "last_performance_review_date": new_last_performance_review_date.strftime("%Y-%m-%d") if new_last_performance_review_date else None
-                    }
-                    append_data(SUPPLIER_DUMMY_DATA_FILE, pd.DataFrame([new_supplier_entry]))
-                    st.success(f"✅ Supplier '{new_supplier_name}' ({new_supplier_id}) added successfully!")
+                        "annual_spend_usd": new_annual_spend,
+                        "last_performance_review_date": new_last_performance_review_date.isoformat(),
+                        "esg_compliance_score": new_esg_score, # NEW
+                        "emissions_target_met": new_emissions_target_met # NEW
+                    }])
+                    append_data(SUPPLIER_DUMMY_DATA_FILE, new_entry)
+                    st.success(f"Supplier '{new_supplier_name}' added successfully!")
                     st.rerun()
-                elif supplier_submitted:
-                    st.error("❗ Supplier ID and Supplier Name are required fields.")
+                else:
+                    st.error("Please fill in all required fields: Supplier Name, Contact Person, Email.")
+
+        st.markdown("### Existing Suppliers")
+        
+        # Apply search and filter to supplier data
+        display_supplier_df = apply_search_and_filter(supplier_df, "supplier_search", "supplier_advanced_search")
+
+        if not display_supplier_df.empty:
+            st.dataframe(display_supplier_df, use_container_width=True, hide_index=True)
+
+            selected_supplier_id = st.selectbox("Select Supplier ID to Edit/Delete", [''] + display_supplier_df['supplier_id'].tolist(), key="select_supplier_edit_del")
+
+            if selected_supplier_id:
+                selected_supplier = supplier_df[supplier_df['supplier_id'] == selected_supplier_id].iloc[0]
+                st.markdown(f"#### Edit Supplier: {selected_supplier['supplier_name']}")
+                with st.form("edit_supplier_form"):
+                    col1_edit, col2_edit, col3_edit = st.columns(3)
+                    with col1_edit:
+                        edit_supplier_name = st.text_input("Supplier Name", value=selected_supplier['supplier_name'], key="edit_sup_name")
+                        edit_contact_person = st.text_input("Contact Person", value=selected_supplier['contact_person'], key="edit_sup_contact")
+                        edit_email = st.text_input("Email", value=selected_supplier['email'], key="edit_sup_email")
+                    with col2_edit:
+                        edit_phone = st.text_input("Phone", value=selected_supplier['phone'], key="edit_sup_phone")
+                        edit_agreement_status = st.selectbox("Agreement Status", ["Active", "Pending Renewal", "Expired", "Under Review"], index=["Active", "Pending Renewal", "Expired", "Under Review"].index(selected_supplier['agreement_status']), key="edit_sup_agreement")
+                        edit_product_category = st.text_input("Primary Product Category", value=selected_supplier['primary_product_category'], key="edit_sup_prod_cat")
+                    with col3_edit:
+                        edit_last_audit_score = st.number_input("Last Audit Score (0-100)", min_value=0, max_value=100, value=int(selected_supplier['last_audit_score']), key="edit_sup_audit_score")
+                        edit_on_time_delivery = st.number_input("On-Time Delivery Rate (%)", min_value=0.0, max_value=100.0, value=float(selected_supplier['on_time_delivery_rate']), format="%.2f", key="edit_sup_otd")
+                        edit_quality_reject = st.number_input("Quality Reject Rate (%)", min_value=0.0, max_value=100.0, value=float(selected_supplier['quality_reject_rate']), format="%.2f", key="edit_sup_reject")
+                    
+                    # --- NEW: ESG Fields for Supplier Editing ---
+                    col_esg_sup1_edit, col_esg_sup2_edit = st.columns(2)
+                    with col_esg_sup1_edit:
+                        edit_esg_score = st.number_input("ESG Compliance Score (0-100)", min_value=0, max_value=100, value=int(selected_supplier['esg_compliance_score']), key="edit_sup_esg_score")
+                    with col_esg_sup2_edit:
+                        edit_emissions_target_met = st.checkbox("Met Emissions Reduction Target?", value=bool(selected_supplier['emissions_target_met']), key="edit_sup_emissions_met")
+
+                    edit_risk_level = st.selectbox("Risk Level", ["Low", "Medium", "High"], index=["Low", "Medium", "High"].index(selected_supplier['risk_level']), key="edit_sup_risk")
+                    edit_certification = st.text_input("Certifications (e.g., ISO 9001)", value=selected_supplier['certification'], key="edit_sup_cert")
+                    edit_annual_spend = st.number_input("Annual Spend (USD)", min_value=0, value=int(selected_supplier['annual_spend_usd']), key="edit_sup_annual_spend")
+                    edit_notes = st.text_area("Notes", value=selected_supplier['notes'], key="edit_sup_notes")
+                    
+                    # Handle potential NaT for date input
+                    try:
+                        default_date = datetime.strptime(str(selected_supplier['last_performance_review_date']), '%Y-%m-%d').date()
+                    except (ValueError, TypeError):
+                        default_date = datetime.today().date()
+                    edit_last_performance_review_date = st.date_input("Last Performance Review Date", value=default_date, key="edit_sup_perf_date")
+
+                    update_supplier_btn = st.form_submit_button("Update Supplier")
+                    delete_supplier_btn = st.form_submit_button("Delete Supplier")
+
+                    if update_supplier_btn:
+                        idx = supplier_df[supplier_df['supplier_id'] == selected_supplier_id].index[0]
+                        supplier_df.loc[idx] = {
+                            "supplier_id": selected_supplier_id,
+                            "supplier_name": edit_supplier_name,
+                            "contact_person": edit_contact_person,
+                            "email": edit_email,
+                            "phone": edit_phone,
+                            "agreement_status": edit_agreement_status,
+                            "last_audit_score": edit_last_audit_score,
+                            "notes": edit_notes,
+                            "primary_product_category": edit_product_category,
+                            "on_time_delivery_rate": edit_on_time_delivery,
+                            "quality_reject_rate": edit_quality_reject,
+                            "risk_level": edit_risk_level,
+                            "certification": edit_certification,
+                            "annual_spend_usd": edit_annual_spend,
+                            "last_performance_review_date": edit_last_performance_review_date.isoformat(),
+                            "esg_compliance_score": edit_esg_score, # NEW
+                            "emissions_target_met": edit_emissions_target_met # NEW
+                        }
+                        update_data(SUPPLIER_DUMMY_DATA_FILE, supplier_df)
+                        st.success(f"Supplier '{edit_supplier_name}' updated successfully!")
+                        st.rerun()
+                    
+                    if delete_supplier_btn:
+                        supplier_df = supplier_df[supplier_df['supplier_id'] != selected_supplier_id]
+                        update_data(SUPPLIER_DUMMY_DATA_FILE, supplier_df)
+                        st.warning(f"Supplier '{selected_supplier['supplier_name']}' deleted.")
+                        st.rerun()
+        else:
+            st.info("No suppliers added yet.")
+
 
 # --- Asset Management Module ---
 with tabs[2]: # Corresponding to "🛠️ Asset Management"
-    st.subheader("Inter-Company Asset Management")
-    st.markdown("Track and manage all critical assets across your OEM and supplier facilities, ensuring proper utilization and maintenance.")
+    st.subheader("Asset Management")
+    st.markdown("Track and manage physical assets used by OEM and suppliers.")
 
-    # Load supplier data for the dropdown
-    supplier_df_for_selection = load_data(SUPPLIER_DUMMY_DATA_FILE, columns=["supplier_name"])
-    supplier_names_for_dropdown = supplier_df_for_selection['supplier_name'].tolist()
-    if not supplier_names_for_dropdown:
-        supplier_names_for_dropdown = ["N/A (No suppliers found)"] # Fallback if supplier file is empty
-
-    st.markdown("---")
-    st.subheader("Asset Inventory Log")
     assets_df = load_data(ASSETS_FILE, columns=asset_columns)
     
-    # Apply search and filter to assets_df
-    filtered_assets_df = apply_search_and_filter(assets_df, "asset_management_search", "asset_management_advance_search")
-
-    if not filtered_assets_df.empty:
-        st.dataframe(filtered_assets_df, use_container_width=True, hide_index=True)
+    if user_role not in ["OEM", "Supplier A", "Supplier B"]:
+        st.warning("🔒 You must be logged in as 'OEM' or a 'Supplier' to manage assets.")
     else:
-        st.info("No assets logged yet or no assets matching your search/filter criteria. Add assets using the 'Add New Asset' expander below.")
+        st.markdown("### Add New Asset")
+        with st.form("new_asset_form"):
+            col_a1, col_a2 = st.columns(2)
+            with col_a1:
+                new_asset_name = st.text_input("Asset Name", key="new_asset_name")
+                new_location = st.text_input("Location", key="new_asset_location")
+                new_status = st.selectbox("Status", ["Operational", "Under Maintenance", "Retired", "Idle"], key="new_asset_status")
+                new_supplier = st.text_input("Associated Supplier (Optional)", help="e.g., Supplier A, Supplier B, or OEM", key="new_asset_supplier")
+            with col_a2:
+                new_eol_date = st.date_input("End of Life Date", value=datetime.today() + timedelta(days=365*5), key="new_asset_eol")
+                new_calibration_date = st.date_input("Last Calibration Date", value=datetime.today(), key="new_asset_calibration")
+                # --- NEW: last_active_date for AI Co-pilot ---
+                new_last_active_date = st.date_input("Last Active Date", value=datetime.today(), help="When was this asset last actively used?", key="new_asset_last_active")
+                new_notes = st.text_area("Notes", key="new_asset_notes")
 
-    st.markdown("---")
-    with st.container():
-        st.subheader("Add New Asset")
-        with st.expander("Click to log a new asset", expanded=False):
-            with st.form("new_asset_form", clear_on_submit=True):
-                col_a1, col_a2 = st.columns(2)
-                with col_a1:
-                    asset_id_val = st.text_input("Asset ID (e.g., ZNV-TOOL-001)", placeholder="e.g., ZNV-TOOL-001")
-                with col_a2:
-                    asset_name = st.text_input("Asset Name/Description", placeholder="e.g., CNC Milling Machine, Robotic Arm")
+            submit_asset = st.form_submit_button("Add Asset")
 
-                location = st.selectbox("Current Location", ["OEM Site", "Supplier A Facility", "Supplier B Warehouse", "In Transit"])
-                asset_status_options = ["In Use", "In Storage", "Under Maintenance", "Awaiting Calibration", "End of Life (EOL)", "Scrapped"]
-                asset_status = st.selectbox("Asset Status", asset_status_options)
-                asset_supplier = st.selectbox("Associated Supplier", supplier_names_for_dropdown, help="Select the supplier currently using or managing this asset.")
-
-                col_a3, col_a4 = st.columns(2)
-                with col_a3:
-                    eol_date = st.date_input("Estimated End of Life (EOL) Date", value=None, key="eol_date_asset")
-                with col_a4:
-                    calibration_date = st.date_input("Next Calibration Date", value=None, key="cal_date_asset")
-
-                notes = st.text_area("Notes/Comments about the asset", placeholder="e.g., Last serviced on XYZ date, requires special lubricant.")
-                asset_submitted = st.form_submit_button("➕ Add Asset")
-
-                if asset_submitted and asset_id_val and asset_name:
-                    new_asset = {
-                        "asset_id": asset_id_val,
-                        "asset_name": asset_name,
-                        "location": location,
-                        "status": asset_status,
-                        "eol_date": eol_date.strftime("%Y-%m-%d") if eol_date else None,
-                        "calibration_date": calibration_date.strftime("%Y-%m-%d") if calibration_date else None,
-                        "notes": notes,
-                        "supplier": asset_supplier
-                    }
-                    append_data(ASSETS_FILE, pd.DataFrame([new_asset]))
-                    st.success(f"✅ Asset '{asset_name}' ({asset_id_val}) added successfully!")
+            if submit_asset:
+                if new_asset_name and new_location:
+                    asset_id = "AST" + str(len(assets_df) + 1).zfill(4)
+                    new_entry = pd.DataFrame([{
+                        "asset_id": asset_id,
+                        "asset_name": new_asset_name,
+                        "location": new_location,
+                        "status": new_status,
+                        "eol_date": new_eol_date.isoformat(),
+                        "calibration_date": new_calibration_date.isoformat(),
+                        "notes": new_notes,
+                        "supplier": new_supplier,
+                        "last_active_date": new_last_active_date.isoformat() # NEW
+                    }])
+                    append_data(ASSETS_FILE, new_entry)
+                    st.success(f"Asset '{new_asset_name}' added successfully!")
                     st.rerun()
-                elif asset_submitted:
-                    st.error("❗ Asset ID and Asset Name are required.")
+                else:
+                    st.error("Please fill in Asset Name and Location.")
+        
+        st.markdown("### Existing Assets")
+        
+        # Filter assets for non-OEM users
+        if user_role == "OEM":
+            display_assets_df = assets_df
+        elif user_role in ["Supplier A", "Supplier B"]:
+            display_assets_df = assets_df[assets_df['supplier'] == user_role]
+            if display_assets_df.empty:
+                st.info(f"No assets found for {user_role}.")
+        else: # For Auditor, etc. just show all but no edit/delete
+            display_assets_df = assets_df
+
+        # Apply search and filter to asset data
+        display_assets_df = apply_search_and_filter(display_assets_df, "asset_search", "asset_advanced_search")
+
+        if not display_assets_df.empty:
+            st.dataframe(display_assets_df, use_container_width=True, hide_index=True)
+
+            if user_role in ["OEM", "Supplier A", "Supplier B"]: # Only allow editing/deleting for OEM or the specific supplier
+                selected_asset_id = st.selectbox("Select Asset ID to Edit/Delete", [''] + display_assets_df['asset_id'].tolist(), key="select_asset_edit_del")
+
+                if selected_asset_id:
+                    selected_asset = assets_df[assets_df['asset_id'] == selected_asset_id].iloc[0]
+                    
+                    # Check if the asset belongs to the logged-in supplier, if applicable
+                    if user_role != "OEM" and selected_asset['supplier'] != user_role:
+                        st.warning(f"You ({user_role}) do not have permission to edit this asset as it belongs to {selected_asset['supplier']}.")
+                    else:
+                        st.markdown(f"#### Edit Asset: {selected_asset['asset_name']}")
+                        with st.form("edit_asset_form"):
+                            col_e1, col_e2 = st.columns(2)
+                            with col_e1:
+                                edit_asset_name = st.text_input("Asset Name", value=selected_asset['asset_name'], key="edit_asset_name")
+                                edit_location = st.text_input("Location", value=selected_asset['location'], key="edit_asset_location")
+                                edit_status = st.selectbox("Status", ["Operational", "Under Maintenance", "Retired", "Idle"], index=["Operational", "Under Maintenance", "Retired", "Idle"].index(selected_asset['status']), key="edit_asset_status")
+                                edit_supplier = st.text_input("Associated Supplier (Optional)", value=selected_asset['supplier'], key="edit_asset_supplier")
+                            with col_e2:
+                                try:
+                                    default_eol = datetime.strptime(str(selected_asset['eol_date']), '%Y-%m-%d').date()
+                                except (ValueError, TypeError):
+                                    default_eol = datetime.today().date()
+                                edit_eol_date = st.date_input("End of Life Date", value=default_eol, key="edit_asset_eol")
+                                
+                                try:
+                                    default_cal = datetime.strptime(str(selected_asset['calibration_date']), '%Y-%m-%d').date()
+                                except (ValueError, TypeError):
+                                    default_cal = datetime.today().date()
+                                edit_calibration_date = st.date_input("Last Calibration Date", value=default_cal, key="edit_asset_calibration")
+                                
+                                # --- NEW: last_active_date for editing ---
+                                try:
+                                    default_active = datetime.strptime(str(selected_asset['last_active_date']), '%Y-%m-%d').date()
+                                except (ValueError, TypeError):
+                                    default_active = datetime.today().date()
+                                edit_last_active_date = st.date_input("Last Active Date", value=default_active, key="edit_asset_last_active")
+
+                                edit_notes = st.text_area("Notes", value=selected_asset['notes'], key="edit_asset_notes")
+
+                            update_asset_btn = st.form_submit_button("Update Asset")
+                            delete_asset_btn = st.form_submit_button("Delete Asset")
+
+                            if update_asset_btn:
+                                idx = assets_df[assets_df['asset_id'] == selected_asset_id].index[0]
+                                assets_df.loc[idx] = {
+                                    "asset_id": selected_asset_id,
+                                    "asset_name": edit_asset_name,
+                                    "location": edit_location,
+                                    "status": edit_status,
+                                    "eol_date": edit_eol_date.isoformat(),
+                                    "calibration_date": edit_calibration_date.isoformat(),
+                                    "notes": edit_notes,
+                                    "supplier": edit_supplier,
+                                    "last_active_date": edit_last_active_date.isoformat() # NEW
+                                }
+                                update_data(ASSETS_FILE, assets_df)
+                                st.success(f"Asset '{edit_asset_name}' updated successfully!")
+                                st.rerun()
+                            
+                            if delete_asset_btn:
+                                assets_df = assets_df[assets_df['asset_id'] != selected_asset_id]
+                                update_data(ASSETS_FILE, assets_df)
+                                st.warning(f"Asset '{selected_asset['asset_name']}' deleted.")
+                                st.rerun()
+            else:
+                st.info("Select an asset above to see details or edit/delete options.")
+        else:
+            if user_role in ["Supplier A", "Supplier B"]:
+                st.info(f"No assets currently managed by {user_role}.")
+            else:
+                st.info("No assets added yet.")
 
 
-# --- Project Management Module (Gantt) ---
+# --- Project Management Module ---
 with tabs[3]: # Corresponding to "📅 Project Management"
-    st.subheader("Project Management Tool")
-    st.markdown("Streamline and track all collaborative projects and tasks with your suppliers. Monitor progress, deadlines, and critical path items.")
+    st.subheader("Project & Task Management")
+    st.markdown("Oversee internal projects and tasks, assigning them to relevant personnel.")
 
-    st.markdown("---")
-    st.subheader("Current Project Tasks")
     projects_df = load_data(PROJECTS_FILE, columns=project_columns)
 
-    # NO search bar here
-    if not projects_df.empty:
-        st.dataframe(projects_df, use_container_width=True, hide_index=True)
-        st.info("💡 Tip: For a full Gantt chart visualization, a dedicated library like Plotly's Timeline chart could be integrated.")
+    if user_role not in ["OEM", "Supplier A", "Supplier B"]: # Allowing suppliers to see their own projects
+        st.warning("🔒 You must be logged in as 'OEM' or a 'Supplier' to manage projects.")
     else:
-        st.info("No project tasks added yet. Add tasks using the 'Add New Project Task' section below.")
+        st.markdown("### Create New Project/Task")
+        with st.form("new_project_form"):
+            new_task_name = st.text_input("Task Name", key="new_task_name")
+            new_description = st.text_area("Description", key="new_task_description")
+            new_status = st.selectbox("Status", ["Not Started", "In Progress", "Completed", "On Hold", "Input Pending"], key="new_task_status")
+            new_assigned_to = st.text_input("Assigned To (Name/Role)", key="new_task_assignee")
+            new_due_date = st.date_input("Due Date", value=datetime.today() + timedelta(days=7), key="new_task_due_date")
+            new_input_pending = st.checkbox("Input Pending from Supplier?", value=False, key="new_task_input_pending")
+            # --- NEW: is_esg_project for Sustainability Tracking ---
+            new_is_esg_project = st.checkbox("Is this an ESG-related project?", value=False, help="Check if this project contributes to Environmental, Social, or Governance goals.", key="new_task_esg_project")
 
 
-    st.markdown("---")
-    with st.container():
-        st.subheader("Add New Project Task")
-        with st.expander("Click to create a new task", expanded=False):
-            with st.form("new_task_form", clear_on_submit=True):
-                task_id = f"TASK-{int(datetime.now().timestamp())}"
-                task_name = st.text_input("Task Name", placeholder="e.g., Develop new component prototype")
-                description = st.text_area("Task Description", placeholder="Detailed description of the task and its objectives.")
-                col_p1, col_p2, col_p3 = st.columns(3)
-                with col_p1:
-                    status_options = ["Open", "Work In Progress", "Blocked", "Pending Review", "Closed"]
-                    status = st.selectbox("Status", status_options)
-                with col_p2:
-                    assigned_to = st.selectbox("Assigned To", user_roles + ["Unassigned", "Cross-functional Team"])
-                with col_p3:
-                    due_date = st.date_input("Due Date", min_value=datetime.today())
+            submit_project = st.form_submit_button("Add Project/Task")
 
-                input_pending_status = st.checkbox("Requires Input from Stakeholders?", value=False, help="Check if this task requires input or approval from other parties.")
-                submitted = st.form_submit_button("➕ Add Task")
-
-                if submitted and task_name:
-                    new_task = {
+            if submit_project:
+                if new_task_name and new_assigned_to:
+                    task_id = "TASK" + str(len(projects_df) + 1).zfill(4)
+                    new_entry = pd.DataFrame([{
                         "task_id": task_id,
-                        "task_name": task_name,
-                        "status": status,
-                        "assigned_to": assigned_to,
-                        "due_date": due_date.strftime("%Y-%m-%d"),
-                        "description": description,
-                        "input_pending": "Yes" if input_pending_status else "No"
-                    }
-                    append_data(PROJECTS_FILE, pd.DataFrame([new_task]))
-                    st.success(f"✅ Task '{task_name}' added successfully!")
+                        "task_name": new_task_name,
+                        "status": new_status,
+                        "assigned_to": new_assigned_to,
+                        "due_date": new_due_date.isoformat(),
+                        "description": new_description,
+                        "input_pending": new_input_pending,
+                        "is_esg_project": new_is_esg_project # NEW
+                    }])
+                    append_data(PROJECTS_FILE, new_entry)
+                    st.success(f"Project/Task '{new_task_name}' added successfully!")
                     st.rerun()
-                elif submitted:
-                    st.error("❗ Task Name is required.")
+                else:
+                    st.error("Please fill in Task Name and Assigned To.")
+
+        st.markdown("### Existing Projects/Tasks")
+        
+        # Filter projects for non-OEM users
+        if user_role == "OEM":
+            display_projects_df = projects_df
+        elif user_role in ["Supplier A", "Supplier B"]:
+            display_projects_df = projects_df[projects_df['assigned_to'] == user_role]
+            if display_projects_df.empty:
+                st.info(f"No projects/tasks assigned to {user_role}.")
+        else: # For Auditor, etc. just show all but no edit/delete
+            display_projects_df = projects_df
+
+        # Apply search and filter to project data
+        display_projects_df = apply_search_and_filter(display_projects_df, "project_search", "project_advanced_search")
+
+        if not display_projects_df.empty:
+            st.dataframe(display_projects_df, use_container_width=True, hide_index=True)
+
+            if user_role in ["OEM", "Supplier A", "Supplier B"]: # Only allow editing/deleting for OEM or the specific supplier
+                selected_task_id = st.selectbox("Select Task ID to Edit/Delete", [''] + display_projects_df['task_id'].tolist(), key="select_task_edit_del")
+
+                if selected_task_id:
+                    selected_task = projects_df[projects_df['task_id'] == selected_task_id].iloc[0]
+
+                    # Check if the task is assigned to the logged-in supplier, if applicable
+                    if user_role != "OEM" and selected_task['assigned_to'] != user_role:
+                        st.warning(f"You ({user_role}) do not have permission to edit this task as it is assigned to {selected_task['assigned_to']}.")
+                    else:
+                        st.markdown(f"#### Edit Project/Task: {selected_task['task_name']}")
+                        with st.form("edit_project_form"):
+                            edit_task_name = st.text_input("Task Name", value=selected_task['task_name'], key="edit_task_name")
+                            edit_description = st.text_area("Description", value=selected_task['description'], key="edit_task_description")
+                            edit_status = st.selectbox("Status", ["Not Started", "In Progress", "Completed", "On Hold", "Input Pending"], index=["Not Started", "In Progress", "Completed", "On Hold", "Input Pending"].index(selected_task['status']), key="edit_task_status")
+                            edit_assigned_to = st.text_input("Assigned To (Name/Role)", value=selected_task['assigned_to'], key="edit_task_assignee")
+                            
+                            try:
+                                default_due = datetime.strptime(str(selected_task['due_date']), '%Y-%m-%d').date()
+                            except (ValueError, TypeError):
+                                default_due = datetime.today().date()
+                            edit_due_date = st.date_input("Due Date", value=default_due, key="edit_task_due_date")
+                            edit_input_pending = st.checkbox("Input Pending from Supplier?", value=bool(selected_task['input_pending']), key="edit_task_input_pending")
+                            # --- NEW: is_esg_project for editing ---
+                            edit_is_esg_project = st.checkbox("Is this an ESG-related project?", value=bool(selected_task['is_esg_project']), key="edit_task_esg_project")
+
+
+                            update_project_btn = st.form_submit_button("Update Project/Task")
+                            delete_project_btn = st.form_submit_button("Delete Project/Task")
+
+                            if update_project_btn:
+                                idx = projects_df[projects_df['task_id'] == selected_task_id].index[0]
+                                projects_df.loc[idx] = {
+                                    "task_id": selected_task_id,
+                                    "task_name": edit_task_name,
+                                    "status": edit_status,
+                                    "assigned_to": edit_assigned_to,
+                                    "due_date": edit_due_date.isoformat(),
+                                    "description": edit_description,
+                                    "input_pending": edit_input_pending,
+                                    "is_esg_project": edit_is_esg_project # NEW
+                                }
+                                update_data(PROJECTS_FILE, projects_df)
+                                st.success(f"Project/Task '{edit_task_name}' updated successfully!")
+                                st.rerun()
+                            
+                            if delete_project_btn:
+                                projects_df = projects_df[projects_df['task_id'] != selected_task_id]
+                                update_data(PROJECTS_FILE, projects_df)
+                                st.warning(f"Project/Task '{selected_task['task_name']}' deleted.")
+                                st.rerun()
+            else:
+                st.info("Select a project/task above to see details or edit/delete options.")
+        else:
+            if user_role in ["Supplier A", "Supplier B"]:
+                st.info(f"No projects/tasks currently assigned to {user_role}.")
+            else:
+                st.info("No projects/tasks added yet.")
 
 
 # --- Audit Management Module ---
 with tabs[4]: # Corresponding to "📋 Audit Management"
-    st.subheader("Supplier Assessment & Actions Tracking")
-    st.markdown("Efficiently manage supplier audit findings, track corrective actions, and maintain a robust assessment history.")
+    st.subheader("Audit Management")
+    st.markdown("Manage audit points, track their status, and assign resolutions.")
 
-    st.markdown("---")
-    st.subheader("Audit Records & Open Points")
     audits_df = load_data(AUDITS_FILE, columns=audit_columns)
-    
-    # Apply search and filter to audits_df
-    filtered_audits_df = apply_search_and_filter(audits_df, "audit_management_search", "audit_management_advance_search")
 
-    if not filtered_audits_df.empty:
-        st.dataframe(filtered_audits_df, use_container_width=True, hide_index=True)
+    if user_role not in ["OEM", "Auditor"]:
+        st.warning("🔒 You must be logged in as 'OEM' or 'Auditor' to manage audits.")
     else:
-        st.info("No audit points recorded yet or no audit points matching your search/filter criteria. Add audit points using the 'Add New Audit Point / Finding' section below.")
+        st.markdown("### Add New Audit Point")
+        with st.form("new_audit_form"):
+            new_point_description = st.text_area("Audit Point Description", key="new_audit_desc")
+            new_status = st.selectbox("Status", ["Open", "In Progress", "Closed", "Requires Supplier Input"], key="new_audit_status")
+            new_assignee = st.text_input("Assignee (Name/Role)", key="new_audit_assignee")
+            new_due_date = st.date_input("Due Date", value=datetime.today() + timedelta(days=14), key="new_audit_due_date")
+            new_resolution = st.text_area("Resolution Notes (Optional)", key="new_audit_res")
+            new_input_pending_audit = st.checkbox("Input Pending from Supplier?", value=False, key="new_audit_input_pending")
 
+            submit_audit = st.form_submit_button("Add Audit Point")
 
-    st.markdown("---")
-    with st.container():
-        st.subheader("Add New Audit Point / Finding")
-        with st.expander("Click to log a new audit point", expanded=False):
-            with st.form("new_audit_point_form", clear_on_submit=True):
-                audit_id_val = f"AUDIT-{int(datetime.now().timestamp())}"
-                point_description = st.text_area("Audit Point/Finding Description", placeholder="e.g., Non-conformance in raw material batch #12345.")
-                col_au1, col_au2, col_au3 = st.columns(3)
-                with col_au1:
-                    audit_status_options = ["Open", "In Progress", "Resolved", "Pending Verification", "Closed", "Deviation Accepted"]
-                    audit_status = st.selectbox("Status", audit_status_options)
-                with col_au2:
-                    assignee = st.selectbox("Assignee", user_roles + ["Cross-functional Team"])
-                with col_au3:
-                    due_date_audit = st.date_input("Due Date for Resolution", min_value=datetime.today(), key="due_date_audit")
-
-                resolution = st.text_area("Resolution / Corrective Action (if available)", placeholder="Describe actions taken to resolve the finding.")
-                input_pending_audit = st.checkbox("Requires Input from Stakeholders?", value=False, help="Check if this audit point needs input or collaboration from others.")
-                audit_submitted = st.form_submit_button("➕ Add Audit Point")
-
-                if audit_submitted and point_description:
-                    new_audit_point = {
-                        "audit_id": audit_id_val,
-                        "point_description": point_description,
-                        "status": audit_status,
-                        "assignee": assignee,
-                        "due_date": due_date_audit.strftime("%Y-%m-%d"),
-                        "resolution": resolution,
-                        "input_pending": "Yes" if input_pending_audit else "No"
-                    }
-                    append_data(AUDITS_FILE, pd.DataFrame([new_audit_point]))
-                    st.success(f"✅ Audit point '{audit_id_val}' added successfully!")
+            if submit_audit:
+                if new_point_description and new_assignee:
+                    audit_id = "AUDIT" + str(len(audits_df) + 1).zfill(4)
+                    new_entry = pd.DataFrame([{
+                        "audit_id": audit_id,
+                        "point_description": new_point_description,
+                        "status": new_status,
+                        "assignee": new_assignee,
+                        "due_date": new_due_date.isoformat(),
+                        "resolution": new_resolution,
+                        "input_pending": new_input_pending_audit
+                    }])
+                    append_data(AUDITS_FILE, new_entry)
+                    st.success(f"Audit point added successfully: '{new_point_description[:30]}...'")
                     st.rerun()
-                elif audit_submitted:
-                    st.error("❗ Audit Point Description is required.")
+                else:
+                    st.error("Please fill in Audit Point Description and Assignee.")
+        
+        st.markdown("### Existing Audit Points")
+        
+        # Filter audits for non-OEM/Auditor roles (e.g., Suppliers can see audits assigned to them)
+        if user_role == "OEM" or user_role == "Auditor":
+            display_audits_df = audits_df
+        elif user_role in ["Supplier A", "Supplier B"]:
+            display_audits_df = audits_df[audits_df['assignee'] == user_role]
+            if display_audits_df.empty:
+                st.info(f"No audit points assigned to {user_role}.")
+        else: # For other roles, just show all but no edit/delete
+            display_audits_df = audits_df
+
+        # Apply search and filter to audit data
+        display_audits_df = apply_search_and_filter(display_audits_df, "audit_search", "audit_advanced_search")
+
+        if not display_audits_df.empty:
+            st.dataframe(display_audits_df, use_container_width=True, hide_index=True)
+
+            if user_role == "OEM" or user_role == "Auditor": # Only allow editing/deleting for OEM and Auditor
+                selected_audit_id = st.selectbox("Select Audit ID to Edit/Delete", [''] + display_audits_df['audit_id'].tolist(), key="select_audit_edit_del")
+
+                if selected_audit_id:
+                    selected_audit = audits_df[audits_df['audit_id'] == selected_audit_id].iloc[0]
+                    st.markdown(f"#### Edit Audit Point: {selected_audit['point_description'][:50]}...")
+                    with st.form("edit_audit_form"):
+                        edit_point_description = st.text_area("Audit Point Description", value=selected_audit['point_description'], key="edit_audit_desc")
+                        edit_status = st.selectbox("Status", ["Open", "In Progress", "Closed", "Requires Supplier Input"], index=["Open", "In Progress", "Closed", "Requires Supplier Input"].index(selected_audit['status']), key="edit_audit_status")
+                        edit_assignee = st.text_input("Assignee (Name/Role)", value=selected_audit['assignee'], key="edit_audit_assignee")
+                        
+                        try:
+                            default_audit_due = datetime.strptime(str(selected_audit['due_date']), '%Y-%m-%d').date()
+                        except (ValueError, TypeError):
+                            default_audit_due = datetime.today().date()
+                        edit_due_date = st.date_input("Due Date", value=default_audit_due, key="edit_audit_due_date")
+                        edit_resolution = st.text_area("Resolution Notes", value=selected_audit['resolution'], key="edit_audit_res")
+                        edit_input_pending_audit = st.checkbox("Input Pending from Supplier?", value=bool(selected_audit['input_pending']), key="edit_audit_input_pending")
+
+                        update_audit_btn = st.form_submit_button("Update Audit Point")
+                        delete_audit_btn = st.form_submit_button("Delete Audit Point")
+
+                        if update_audit_btn:
+                            idx = audits_df[audits_df['audit_id'] == selected_audit_id].index[0]
+                            audits_df.loc[idx] = {
+                                "audit_id": selected_audit_id,
+                                "point_description": edit_point_description,
+                                "status": edit_status,
+                                "assignee": edit_assignee,
+                                "due_date": edit_due_date.isoformat(),
+                                "resolution": edit_resolution,
+                                "input_pending": edit_input_pending_audit
+                            }
+                            update_data(AUDITS_FILE, audits_df)
+                            st.success(f"Audit point '{edit_point_description[:30]}...' updated successfully!")
+                            st.rerun()
+                        
+                        if delete_audit_btn:
+                            audits_df = audits_df[audits_df['audit_id'] != selected_audit_id]
+                            update_data(AUDITS_FILE, audits_df)
+                            st.warning(f"Audit point '{selected_audit['point_description'][:30]}...' deleted.")
+                            st.rerun()
+            else:
+                st.info("Select an audit point above to see details.")
+        else:
+            if user_role in ["Supplier A", "Supplier B"]:
+                st.info(f"No audit points currently assigned to {user_role}.")
+            else:
+                st.info("No audit points added yet.")
 
 
 # --- File Management Module ---
 with tabs[5]: # Corresponding to "📁 File Management"
-    st.subheader("Secured File Management & Version Control")
-    st.markdown("Securely upload, store, and manage all critical documents with your suppliers. Ensure data integrity and controlled access.")
+    st.subheader("File Management")
+    st.markdown("Upload, download, and manage important documents.")
 
-    st.markdown("---")
-    st.subheader("Uploaded Files History")
-    files_df = st.session_state.files_df.copy() # Use session state DF
-    
-    # Apply search and filter to files_df
-    filtered_files_df = apply_search_and_filter(files_df, "file_management_search", "file_management_advance_search")
+    files_df = st.session_state.files_df # Use session state for files_df
+    file_comments_df = st.session_state.file_comments_df # Use session state for comments_df
 
-    if not filtered_files_df.empty:
-        display_df = filtered_files_df.drop(columns=['path']) # Hide path from display table
-        st.dataframe(display_df, use_container_width=True, hide_index=True)
-
-        st.markdown("##### Download Files")
-        selected_file_name_to_download = st.selectbox("Select a file to download or comment on:", filtered_files_df['filename'].tolist(), key="download_file_select")
-        
-        selected_file_row = filtered_files_df[filtered_files_df['filename'] == selected_file_name_to_download]
-        if not selected_file_row.empty:
-            file_to_download_path = selected_file_row['path'].iloc[0]
-            file_mime_type = selected_file_row['type'].iloc[0]
-
-            if file_to_download_path and os.path.exists(file_to_download_path):
-                with open(file_to_download_path, "rb") as file:
-                    st.download_button(
-                        label=f"⬇️ Download {selected_file_name_to_download}",
-                        data=file,
-                        file_name=selected_file_name_to_download,
-                        mime=file_mime_type,
-                        key=f"download_btn_{selected_file_name_to_download}"
-                    )
-                
-                st.markdown("---")
-                st.subheader(f"Comments on '{selected_file_name_to_download}'")
-                
-                # Display comments
-                comments_for_file = st.session_state.file_comments_df[
-                    (st.session_state.file_comments_df['file_name'] == selected_file_name_to_download) &
-                    (st.session_state.file_comments_df['parent_comment_id'].isna())
-                ].sort_values(by="timestamp", ascending=True)
-
-                def display_comment_thread(comment_row, level=0):
-                    indent_style = f"margin-left: {level * 20}px;" if level > 0 else ""
-                    st.markdown(f'<div class="comment-card" style="{indent_style}">', unsafe_allow_html=True)
-                    st.markdown(f"<div class='comment-meta'>**{comment_row['author']}** at {comment_row['timestamp']}{' (mentioned: ' + ', '.join(comment_row['mentions']) + ')' if comment_row['mentions'] else ''}</div>", unsafe_allow_html=True)
-                    st.markdown(f"<div class='comment-body'>{comment_row['comment_text']}</div>", unsafe_allow_html=True)
-                    st.markdown('</div>', unsafe_allow_html=True)
-
-                    # Replies to this comment
-                    replies = st.session_state.file_comments_df[
-                        st.session_state.file_comments_df['parent_comment_id'] == comment_row['comment_id']
-                    ].sort_values(by="timestamp", ascending=True)
-
-                    if not replies.empty:
-                        st.markdown(f'<div class="reply-to-comment">', unsafe_allow_html=True)
-                        for _, reply_row in replies.iterrows():
-                            display_comment_thread(reply_row, level + 1)
-                        st.markdown('</div>', unsafe_allow_html=True)
-
-
-                if comments_for_file.empty:
-                    st.info("No comments yet. Be the first to add one!")
-                else:
-                    for idx, comment_row in comments_for_file.iterrows():
-                        display_comment_thread(comment_row)
-
-                st.markdown("---")
-                st.subheader("Add New Comment")
-                with st.form(key=f"add_comment_form_{selected_file_name_to_download}", clear_on_submit=True):
-                    comment_text = st.text_area("Your Comment", key=f"comment_text_{selected_file_name_to_download}", height=100,
-                                                help="Use @ followed by role (e.g., @OEM, @Supplier A, @Auditor) to mention users.")
-                    
-                    # Parse mentions from comment_text
-                    parsed_mentions = []
-                    for role in user_roles:
-                        if f"@{role}" in comment_text:
-                            parsed_mentions.append(role)
-                    
-                    submit_comment = st.form_submit_button("Post Comment")
-
-                    if submit_comment and comment_text:
-                        new_comment_id = f"COM-{int(datetime.now().timestamp())}-{np.random.randint(1000, 9999)}"
-                        new_comment = {
-                            "comment_id": new_comment_id,
-                            "file_name": selected_file_name_to_download,
-                            "parent_comment_id": None, # Top-level comment
-                            "author": user_role,
-                            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                            "comment_text": comment_text,
-                            "mentions": str(parsed_mentions) # Store as string representation of list
-                        }
-                        append_data(FILE_COMMENTS_FILE, pd.DataFrame([new_comment]))
-                        st.session_state.file_comments_df = load_data(FILE_COMMENTS_FILE, columns=file_comment_columns)
-                        # Ensure 'mentions' column is parsed as list after reload
-                        if 'mentions' in st.session_state.file_comments_df.columns:
-                            st.session_state.file_comments_df['mentions'] = st.session_state.file_comments_df['mentions'].apply(lambda x: eval(x) if isinstance(x, str) else []).fillna('')
-                        
-                        st.success("Comment added!")
-                        
-                        # Send notifications for mentions (conceptual)
-                        if parsed_mentions:
-                            notification_subject = f"You were mentioned in a comment on file: {selected_file_name_to_download}"
-                            notification_message = f"@{user_role} mentioned you in a comment on file '{selected_file_name_to_download}':\n\n\"{comment_text}\"\n\nGo to File Management tab to view the comment."
-                            for mentioned_role in parsed_mentions:
-                                if mentioned_role != user_role: # Don't notify self
-                                    new_notification_id = f"MENTION-{int(datetime.now().timestamp())}-{np.random.randint(1000, 9999)}"
-                                    mention_notification = {
-                                        "notification_id": new_notification_id,
-                                        "sender_role": user_role,
-                                        "recipient_role": mentioned_role,
-                                        "subject": notification_subject,
-                                        "message": notification_message,
-                                        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                                        "status": "Sent",
-                                        "parent_notification_id": None
-                                    }
-                                    append_data(NOTIFICATIONS_FILE, pd.DataFrame([mention_notification]))
-                                    st.session_state.notifications_df = load_data(NOTIFICATIONS_FILE, columns=notification_columns) # Refresh
-                        st.rerun()
-                    elif submit_comment:
-                        st.error("Comment cannot be empty.")
-
-            else:
-                st.warning(f"❗ File '{selected_file_name_to_download}' not found at path: {file_to_download_path}. It might be a dummy entry without a physical file, or the path is incorrect.")
-        else:
-            st.info("Select a file from the list above to view details and comments.")
+    if user_role not in ["OEM", "Supplier A", "Supplier B", "Auditor"]:
+        st.warning("🔒 You must be logged in as 'OEM', 'Supplier', or 'Auditor' to access File Management.")
     else:
-        st.info("No files uploaded yet or no files matching your search/filter criteria. Use the section below to upload your documents.")
+        st.markdown("### Upload New File")
+        uploaded_file = st.file_uploader("Choose a file", type=["pdf", "doc", "docx", "txt", "csv", "xlsx", "png", "jpg", "jpeg"])
 
+        if uploaded_file is not None:
+            file_details = {"FileName": uploaded_file.name, "FileType": uploaded_file.type, "FileSize": uploaded_file.size}
+            
+            # Create a unique filename to prevent overwrites
+            unique_filename = f"{datetime.now().strftime('%Y%m%d%H%M%S')}_{uploaded_file.name}"
+            save_path = os.path.join(DATA_DIR, "uploaded_files", unique_filename) # Store in a subfolder
 
-    st.markdown("---")
-    with st.container():
-        st.subheader("Upload New File")
-        upload_folder_options = {"General Files": DATA_DIR, "Supplier Records (NDA/MSA)": SUPPLIER_RECORDS_DIR}
-        selected_upload_folder_name = st.selectbox("Select Upload Destination Folder:", list(upload_folder_options.keys()))
-        selected_upload_folder_path = upload_folder_options[selected_upload_folder_name]
+            # Ensure the subfolder exists
+            os.makedirs(os.path.join(DATA_DIR, "uploaded_files"), exist_ok=True)
 
-        uploaded_file = st.file_uploader("Upload a document or image", type=["pdf", "docx", "xlsx", "txt", "png", "jpg", "jpeg"], key="file_uploader")
+            with open(save_path, "wb") as f:
+                f.write(uploaded_file.getbuffer())
+            
+            file_id = "FILE" + str(len(files_df) + 1).zfill(4) # Add file_id for better management if needed
+            new_file_entry = pd.DataFrame([{
+                "filename": uploaded_file.name,
+                "type": uploaded_file.type,
+                "size": uploaded_file.size,
+                "uploader": user_role,
+                "timestamp": datetime.now().isoformat(),
+                "path": save_path
+            }])
+            append_data(FILES_FILE, new_file_entry)
+            st.session_state.files_df = load_data(FILES_FILE, columns=["filename", "type", "size", "uploader", "timestamp", "path"]) # Reload
+            st.success(f"File '{uploaded_file.name}' uploaded successfully!")
+            st.rerun()
 
-        if uploaded_file:
-            save_path = os.path.join(selected_upload_folder_path, uploaded_file.name)
-            try:
-                with open(save_path, "wb") as f:
-                    f.write(uploaded_file.getbuffer())
+        st.markdown("### Existing Files")
 
-                file_details = {
-                    "filename": uploaded_file.name,
-                    "type": uploaded_file.type,
-                    "size": uploaded_file.size,
-                    "uploader": user_role,
-                    "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    "path": save_path
-                }
-                append_data(FILES_FILE, pd.DataFrame([file_details]))
-                st.session_state.files_df = load_data(FILES_FILE, columns=["filename", "type", "size", "uploader", "timestamp", "path"]) # Refresh
-                st.success(f"✅ '{uploaded_file.name}' uploaded successfully by {user_role} to '{selected_upload_folder_name}'!")
+        # Display files relevant to the user role
+        if user_role == "OEM" or user_role == "Auditor":
+            display_files_df = files_df
+        else: # Suppliers can only see files they uploaded
+            display_files_df = files_df[files_df['uploader'] == user_role]
+            if display_files_df.empty:
+                st.info(f"No files uploaded by {user_role}.")
 
-                # Basic Preview
-                if uploaded_file.type == "application/pdf":
-                    st.info("📄 PDF Preview (full preview would require a backend service or specialized library).")
-                elif "image" in uploaded_file.type:
-                    st.image(uploaded_file, caption=f"Preview of {uploaded_file.name}", use_column_width=True)
+        display_files_df = apply_search_and_filter(display_files_df, "file_search", "file_advanced_search")
+
+        if not display_files_df.empty:
+            st.dataframe(display_files_df, use_container_width=True, hide_index=True)
+
+            selected_file_name = st.selectbox("Select a file to view comments or download", [''] + display_files_df['filename'].tolist(), key="select_file_for_action")
+
+            if selected_file_name:
+                selected_file_row = display_files_df[display_files_df['filename'] == selected_file_name].iloc[0]
+                
+                st.markdown(f"#### Actions for: {selected_file_name}")
+                col_file_actions1, col_file_actions2 = st.columns(2)
+                
+                with col_file_actions1:
+                    try:
+                        with open(selected_file_row['path'], "rb") as f:
+                            st.download_button(
+                                label=f"Download {selected_file_name}",
+                                data=f,
+                                file_name=selected_file_name,
+                                mime=selected_file_row['type']
+                            )
+                    except FileNotFoundError:
+                        st.error("File not found on server. It might have been moved or deleted.")
+                
+                with col_file_actions2:
+                    if st.button(f"Delete {selected_file_name}", key="delete_file_btn"):
+                        # Ensure actual file is deleted
+                        try:
+                            os.remove(selected_file_row['path'])
+                            files_df = files_df[files_df['filename'] != selected_file_name]
+                            update_data(FILES_FILE, files_df)
+                            st.session_state.files_df = files_df # Update session state
+                            # Also delete associated comments
+                            st.session_state.file_comments_df = st.session_state.file_comments_df[st.session_state.file_comments_df['file_name'] != selected_file_name]
+                            update_data(FILE_COMMENTS_FILE, st.session_state.file_comments_df)
+                            st.warning(f"File '{selected_file_name}' and its comments deleted.")
+                            st.rerun()
+                        except FileNotFoundError:
+                            st.warning(f"File '{selected_file_name}' not found on disk, removing from record only.")
+                            files_df = files_df[files_df['filename'] != selected_file_name]
+                            update_data(FILES_FILE, files_df)
+                            st.session_state.files_df = files_df
+                            st.session_state.file_comments_df = st.session_state.file_comments_df[st.session_state.file_comments_df['file_name'] != selected_file_name]
+                            update_data(FILE_COMMENTS_FILE, st.session_state.file_comments_df)
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Error deleting file: {e}")
+
+                st.markdown(f"---")
+                st.markdown(f"#### Comments for {selected_file_name}")
+
+                current_file_comments = file_comments_df[file_comments_df['file_name'] == selected_file_name]
+
+                if not current_file_comments.empty:
+                    # Display top-level comments first
+                    top_level_comments = current_file_comments[current_file_comments['parent_comment_id'].isna()]
+                    
+                    for idx, comment in top_level_comments.iterrows():
+                        st.markdown(f"""
+                            <div class="comment-card">
+                                <div class="comment-meta">
+                                    <strong>{comment['author']}</strong> commented on {pd.to_datetime(comment['timestamp']).strftime('%Y-%m-%d %H:%M')}
+                                </div>
+                                <div class="comment-body">{comment['comment_text']}</div>
+                                {'<div class="comment-meta">Mentions: ' + ', '.join(eval(comment['mentions'])) + '</div>' if comment['mentions'] and eval(comment['mentions']) else ''}
+                            </div>
+                        """, unsafe_allow_html=True)
+                        
+                        # Display replies to this comment
+                        replies = current_file_comments[current_file_comments['parent_comment_id'] == comment['comment_id']]
+                        if not replies.empty:
+                            st.markdown('<div class="reply-to-comment">', unsafe_allow_html=True)
+                            st.markdown("##### Replies:")
+                            for ridx, reply in replies.iterrows():
+                                st.markdown(f"""
+                                    <div class="comment-card">
+                                        <div class="comment-meta">
+                                            <strong>{reply['author']}</strong> replied on {pd.to_datetime(reply['timestamp']).strftime('%Y-%m-%d %H:%M')}
+                                        </div>
+                                        <div class="comment-body">{reply['comment_text']}</div>
+                                        {'<div class="comment-meta">Mentions: ' + ', '.join(eval(reply['mentions'])) + '</div>' if reply['mentions'] and eval(reply['mentions']) else ''}
+                                    </div>
+                                """, unsafe_allow_html=True)
+                            st.markdown('</div>', unsafe_allow_html=True)
                 else:
-                    st.info("🔍 Preview not available for this file type in this demo.")
-                st.rerun()
+                    st.info("No comments for this file yet.")
+                
+                st.markdown("---")
+                st.markdown("#### Add a New Comment")
+                with st.form(key=f"add_comment_to_{selected_file_name}"):
+                    comment_text = st.text_area("Your Comment", key=f"comment_text_{selected_file_name}")
+                    
+                    # Allow mentioning roles or specific suppliers/OEM
+                    all_mentionable_roles = user_roles + supplier_df['supplier_name'].tolist() + ['OEM']
+                    selected_mentions = st.multiselect("Mention (Optional)", all_mentionable_roles, key=f"mentions_{selected_file_name}")
 
-            except Exception as e:
-                st.error(f"❗ Error saving file: {e}")
+                    add_comment_btn = st.form_submit_button("Post Comment")
 
-# --- Mailbox Module (NEW) ---
+                    if add_comment_btn:
+                        if comment_text:
+                            comment_id = "COMM" + str(len(file_comments_df) + 1).zfill(4)
+                            new_comment = pd.DataFrame([{
+                                "comment_id": comment_id,
+                                "file_name": selected_file_name,
+                                "parent_comment_id": None, # Top-level comment
+                                "author": user_role,
+                                "timestamp": datetime.now().isoformat(),
+                                "comment_text": comment_text,
+                                "mentions": str(selected_mentions) # Store as string representation of list
+                            }])
+                            append_data(FILE_COMMENTS_FILE, new_comment)
+                            st.session_state.file_comments_df = load_data(FILE_COMMENTS_FILE, columns=file_comment_columns) # Reload
+                            st.session_state.file_comments_df['mentions'] = st.session_state.file_comments_df['mentions'].apply(lambda x: eval(x) if isinstance(x, str) else [])
+                            st.success("Comment added!")
+                            st.rerun()
+                        else:
+                            st.warning("Comment cannot be empty.")
+        else:
+            st.info("No files uploaded yet.")
+
+
+# --- Mailbox Module ---
 with tabs[6]: # Corresponding to "📧 Mailbox"
-    st.subheader("Inter-Company Mailbox")
-    st.markdown("Send notifications, receive messages, and manage communication with other entities within the Zenova SRP ecosystem.")
+    st.subheader("Mailbox")
+    st.markdown("Communicate securely with OEM, suppliers, and auditors.")
+
+    notifications_df = st.session_state.notifications_df
 
     st.markdown('<div class="mailbox-container">', unsafe_allow_html=True)
 
-    # Mailbox Navigation Tabs
-    mailbox_tabs = st.tabs(["📥 Inbox", "📤 Sent", "✍️ Compose Notification"])
+    # Mailbox Navigation
+    col_nav1, col_nav2, col_nav3 = st.columns(3)
+    with col_nav1:
+        if st.button("Inbox", key="inbox_btn"):
+            st.session_state.mailbox_view = "inbox"
+            st.session_state.selected_notification_id = None
+    with col_nav2:
+        if st.button("Sent", key="sent_btn"):
+            st.session_state.mailbox_view = "sent"
+            st.session_state.selected_notification_id = None
+    with col_nav3:
+        if st.button("Compose", key="compose_btn"):
+            st.session_state.mailbox_view = "compose"
+            st.session_state.selected_notification_id = None
 
-    with mailbox_tabs[0]: # Inbox Tab
-        st.markdown("### Your Received Notifications")
+    st.markdown("---")
+
+    if st.session_state.mailbox_view == "inbox":
+        st.markdown("### Inbox")
+        # Filter messages received by the current user_role or specific supplier name
+        if user_role in ["OEM", "Auditor"]: # OEMs and Auditors receive messages addressed to their role
+            my_inbox = notifications_df[(notifications_df['recipient_role'] == user_role) | (notifications_df['recipient_role'].isin(user_roles) & (notifications_df['sender_role'] != user_role))]
+        else: # Suppliers receive messages specifically addressed to their name
+            my_inbox = notifications_df[notifications_df['recipient_role'] == user_role]
         
-        # Apply search and filter to inbox messages
-        inbox_messages_raw = st.session_state.notifications_df[
-            (st.session_state.notifications_df['recipient_role'] == user_role) &
-            (st.session_state.notifications_df['parent_notification_id'].isna()) # Only show top-level messages
-        ].sort_values(by="timestamp", ascending=False)
-        
-        filtered_inbox_messages = apply_search_and_filter(inbox_messages_raw, "inbox_search", "inbox_advance_search")
+        # Filter out replies for initial view (only show top-level messages)
+        my_inbox = my_inbox[my_inbox['parent_notification_id'].isna()].sort_values(by="timestamp", ascending=False)
 
-
-        if filtered_inbox_messages.empty:
-            st.info("Your inbox is empty or no messages matching your search/filter criteria.")
-        else:
-            st.markdown('<div style="max-height: 400px; overflow-y: auto;">', unsafe_allow_html=True) # Scrollable area for messages
-            for idx, row in filtered_inbox_messages.iterrows():
-                notification_id = row['notification_id']
-                sender = row['sender_role']
-                subject = row['subject']
-                timestamp = row['timestamp']
-                status = row['status']
-
-                # Determine if the message is unread for the current user
-                is_unread = (status != "Read" and status != "Replied" and row['recipient_role'] == user_role)
-
+        if not my_inbox.empty:
+            for idx, message in my_inbox.iterrows():
+                is_unread = (message['status'] != 'Read')
                 card_class = "message-card unread" if is_unread else "message-card"
                 
-                # Use st.form_submit_button to make the entire card clickable
-                with st.container():
-                    st.markdown(f'<div class="{card_class}">', unsafe_allow_html=True)
-                    col_msg1, col_msg2 = st.columns([0.7, 0.3])
-                    with col_msg1:
-                        st.markdown(f"<h5>Subject: {subject}</h5>", unsafe_allow_html=True)
-                        st.markdown(f"<p>From: {sender}</p>", unsafe_allow_html=True)
-                    with col_msg2:
-                        st.markdown(f"<div class='message-meta'><span>Status: {status}</span><span>{timestamp}</span></div>", unsafe_allow_html=True)
-                    st.markdown('</div>', unsafe_allow_html=True)
-
-                    # Create a hidden button to trigger the view when the div is clicked
-                    # This is a common workaround for making custom clickable elements in Streamlit
-                    if st.button("View", key=f"view_inbox_{notification_id}", use_container_width=True):
-                        st.session_state.selected_notification_id = notification_id
-                        st.session_state.mailbox_view = "view_message"
-                        # Mark as read
-                        if st.session_state.notifications_df.loc[idx, 'status'] == "Sent": # Only mark as read if it was just "Sent" (not already Replied)
-                            st.session_state.notifications_df.loc[idx, 'status'] = "Read"
-                            update_data(NOTIFICATIONS_FILE, st.session_state.notifications_df)
-                        st.rerun()
-            st.markdown('</div>', unsafe_allow_html=True) # End scrollable area
-
-
-    with mailbox_tabs[1]: # Sent Tab
-        st.markdown("### Your Sent Notifications")
-
-        # Filter messages where current user is the sender (top-level messages or replies)
-        sent_messages_raw = st.session_state.notifications_df[
-            st.session_state.notifications_df['sender_role'] == user_role
-        ].sort_values(by="timestamp", ascending=False)
-
-        # Filter out replies if the original message is also shown for the sender
-        # For simplicity, let's just show all sent messages including replies for now
-        # If needed, we can implement more complex threading logic
-        filtered_sent_messages = apply_search_and_filter(sent_messages_raw, "sent_mailbox_search", "sent_mailbox_advance_search")
-
-        if filtered_sent_messages.empty:
-            st.info("You haven't sent any notifications yet or no messages matching your search/filter criteria.")
-        else:
-            st.markdown('<div style="max-height: 400px; overflow-y: auto;">', unsafe_allow_html=True) # Scrollable area for messages
-            for idx, row in filtered_sent_messages.iterrows():
-                notification_id = row['notification_id']
-                recipient = row['recipient_role']
-                subject = row['subject']
-                timestamp = row['timestamp']
-                status = row['status'] # Status from sender's perspective (e.g., "Sent", "Read", "Replied")
-                parent_id = row['parent_notification_id']
-
-                # Don't show replies as separate top-level items in sent list if the original is also listed
-                if pd.notna(parent_id):
-                    continue
-
-                card_class = "message-card"
+                # Display clickable message card
+                st.markdown(f"""
+                    <div class="{card_class}" onclick="
+                        const el = document.getElementById('notification_{message['notification_id']}');
+                        if (el) el.click();
+                    ">
+                        <h5>Subject: {message['subject']}</h5>
+                        <p>From: {message['sender_role']}</p>
+                        <div class="message-meta">
+                            <span>{pd.to_datetime(message['timestamp']).strftime('%Y-%m-%d %H:%M')}</span>
+                            <span>Status: {message['status']}</span>
+                        </div>
+                        <button id="notification_{message['notification_id']}" style="display:none;"></button>
+                    </div>
+                """, unsafe_allow_html=True)
                 
-                with st.container():
-                    st.markdown(f'<div class="{card_class}">', unsafe_allow_html=True)
-                    col_msg1, col_msg2 = st.columns([0.7, 0.3])
-                    with col_msg1:
-                        st.markdown(f"<h5>Subject: {subject}</h5>", unsafe_allow_html=True)
-                        st.markdown(f"<p>To: {recipient}</p>", unsafe_allow_html=True)
-                    with col_msg2:
-                        st.markdown(f"<div class='message-meta'><span>Status: {status}</span><span>{timestamp}</span></div>", unsafe_allow_html=True)
-                    st.markdown('</div>', unsafe_allow_html=True)
-
-                    if st.button("View", key=f"view_sent_{notification_id}", use_container_width=True):
-                        st.session_state.selected_notification_id = notification_id
-                        st.session_state.mailbox_view = "view_message"
-                        st.rerun()
-            st.markdown('</div>', unsafe_allow_html=True) # End scrollable area
-
-
-    with mailbox_tabs[2]: # Compose Tab
-        st.markdown("### Compose New Notification")
-
-        # Define possible recipients based on user role
-        available_recipients = []
-        if user_role == "OEM":
-            supplier_df_compose = load_data(SUPPLIER_DUMMY_DATA_FILE, columns=["supplier_name"])
-            available_recipients.extend(supplier_df_compose['supplier_name'].tolist())
-            available_recipients.append("Auditor")
-        elif user_role.startswith("Supplier") or user_role == "Auditor":
-            available_recipients.append("OEM")
-
-        if not available_recipients:
-            st.warning("No available recipients for your role.")
+                # Hidden button to trigger Streamlit state change on click
+                if st.button(f"view_msg_{message['notification_id']}", key=f"view_msg_btn_{message['notification_id']}", help="Click to view message details", use_container_width=False):
+                    st.session_state.selected_notification_id = message['notification_id']
+                    st.session_state.mailbox_view = "view_message"
+                    st.rerun()
         else:
-            with st.form("compose_notification_form", clear_on_submit=True):
-                recipient = st.selectbox("Recipient", available_recipients)
-                subject = st.text_input("Subject")
-                message_content = st.text_area("Message", height=200)
+            st.info("Your inbox is empty.")
 
-                send_button = st.form_submit_button("✉️ Send Notification")
+    elif st.session_state.mailbox_view == "sent":
+        st.markdown("### Sent Messages")
+        my_sent_messages = notifications_df[notifications_df['sender_role'] == user_role].sort_values(by="timestamp", ascending=False)
+        # Filter out replies for initial view (only show top-level messages)
+        my_sent_messages = my_sent_messages[my_sent_messages['parent_notification_id'].isna()]
 
-                if send_button:
-                    if recipient and subject and message_content:
-                        new_notification_id = f"MSG-{int(datetime.now().timestamp())}-{np.random.randint(1000, 9999)}"
-                        new_notification = {
-                            "notification_id": new_notification_id,
-                            "sender_role": user_role,
-                            "recipient_role": recipient,
-                            "subject": subject,
-                            "message": message_content,
-                            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                            "status": "Sent",
-                            "parent_notification_id": None
-                        }
-                        append_data(NOTIFICATIONS_FILE, pd.DataFrame([new_notification]))
-                        st.session_state.notifications_df = load_data(NOTIFICATIONS_FILE, columns=notification_columns) # Refresh dataframe
-                        st.success(f"✅ Notification sent to {recipient}!")
-                        st.session_state.mailbox_view = "sent" # Redirect to sent messages after sending
-                        st.rerun()
-                    else:
-                        st.error("❗ Please fill in all fields (Recipient, Subject, Message).")
+        if not my_sent_messages.empty:
+            for idx, message in my_sent_messages.iterrows():
+                st.markdown(f"""
+                    <div class="message-card" onclick="
+                        const el = document.getElementById('notification_{message['notification_id']}');
+                        if (el) el.click();
+                    ">
+                        <h5>Subject: {message['subject']}</h5>
+                        <p>To: {message['recipient_role']}</p>
+                        <div class="message-meta">
+                            <span>{pd.to_datetime(message['timestamp']).strftime('%Y-%m-%d %H:%M')}</span>
+                            <span>Status: {message['status']}</span>
+                        </div>
+                        <button id="notification_{message['notification_id']}" style="display:none;"></button>
+                    </div>
+                """, unsafe_allow_html=True)
+                
+                if st.button(f"view_sent_msg_{message['notification_id']}", key=f"view_sent_msg_btn_{message['notification_id']}", help="Click to view message details", use_container_width=False):
+                    st.session_state.selected_notification_id = message['notification_id']
+                    st.session_state.mailbox_view = "view_message"
+                    st.rerun()
+        else:
+            st.info("You haven't sent any messages yet.")
 
-    # Display single message view
-    if st.session_state.mailbox_view == "view_message" and st.session_state.selected_notification_id:
-        selected_msg_id = st.session_state.selected_notification_id
-        
-        # Find the main message
-        message_row = st.session_state.notifications_df[
-            st.session_state.notifications_df['notification_id'] == selected_msg_id
-        ]
-        
-        if not message_row.empty:
-            message = message_row.iloc[0]
+    elif st.session_state.mailbox_view == "compose":
+        st.markdown("### Compose New Message")
+        with st.form("new_message_form"):
+            recipient_options = [r for r in user_roles if r != user_role] + supplier_df['supplier_name'].tolist() # Allow sending to roles or specific suppliers
+            new_recipient = st.selectbox("Recipient", [''] + sorted(list(set(recipient_options))), key="new_msg_recipient")
+            new_subject = st.text_input("Subject", key="new_msg_subject")
+            new_message_body = st.text_area("Message", height=200, key="new_msg_body")
             
-            # Get replies to this message (where parent_notification_id matches)
-            replies_df = st.session_state.notifications_df[
-                st.session_state.notifications_df['parent_notification_id'] == selected_msg_id
-            ].sort_values(by="timestamp", ascending=True)
+            send_message_btn = st.form_submit_button("Send Message")
 
-            st.markdown('<div class="message-detail-view">', unsafe_allow_html=True)
-            st.button("↩️ Back to Inbox", on_click=lambda: (setattr(st.session_state, 'mailbox_view', 'inbox'), setattr(st.session_state, 'selected_notification_id', None)))
+            if send_message_btn:
+                if new_recipient and new_subject and new_message_body:
+                    notification_id = "NOTIF" + str(len(notifications_df) + 1).zfill(4)
+                    new_entry = pd.DataFrame([{
+                        "notification_id": notification_id,
+                        "sender_role": user_role,
+                        "recipient_role": new_recipient,
+                        "subject": new_subject,
+                        "message": new_message_body,
+                        "timestamp": datetime.now().isoformat(),
+                        "status": "Sent",
+                        "parent_notification_id": None
+                    }])
+                    append_data(NOTIFICATIONS_FILE, new_entry)
+                    st.session_state.notifications_df = load_data(NOTIFICATIONS_FILE, columns=notification_columns) # Reload
+                    st.success("Message sent successfully!")
+                    st.session_state.mailbox_view = "sent" # Go to sent items after sending
+                    st.rerun()
+                else:
+                    st.error("Please fill in Recipient, Subject, and Message.")
 
-            st.markdown(f"#### Subject: {message['subject']}")
-            st.markdown(f"<p><strong>From:</strong> {message['sender_role']} <strong>To:</strong> {message['recipient_role']}</p>", unsafe_allow_html=True)
-            st.markdown(f"<p><strong>Sent:</strong> {message['timestamp']}</p>", unsafe_allow_html=True)
-            st.markdown(f"<div class='message-body'>{message['message']}</div>", unsafe_allow_html=True)
+    elif st.session_state.mailbox_view == "view_message":
+        if st.session_state.selected_notification_id:
+            selected_message = notifications_df[notifications_df['notification_id'] == st.session_state.selected_notification_id].iloc[0]
 
-            # Display replies
-            if not replies_df.empty:
-                st.markdown("---")
-                st.markdown("#### Replies:")
-                st.markdown('<div class="reply-list">', unsafe_allow_html=True)
-                for _, reply_row in replies.iterrows():
+            # Mark as read if it's an inbox message
+            if selected_message['recipient_role'] == user_role and selected_message['status'] != 'Read':
+                idx = notifications_df[notifications_df['notification_id'] == st.session_state.selected_notification_id].index[0]
+                notifications_df.loc[idx, 'status'] = 'Read'
+                update_data(NOTIFICATIONS_FILE, notifications_df)
+                st.session_state.notifications_df = notifications_df # Update session state
+
+            st.markdown(f"""
+                <div class="message-detail-view">
+                    <h4>Subject: {selected_message['subject']}</h4>
+                    <p><strong>From:</strong> {selected_message['sender_role']}</p>
+                    <p><strong>To:</strong> {selected_message['recipient_role']}</p>
+                    <p><strong>Date:</strong> {pd.to_datetime(selected_message['timestamp']).strftime('%Y-%m-%d %H:%M')}</p>
+                    <p><strong>Status:</strong> {selected_message['status']}</p>
+                    <div class="message-body">{selected_message['message']}</div>
+                </div>
+            """, unsafe_allow_html=True)
+
+            # Display replies (if any)
+            st.markdown("<div class='reply-list'>", unsafe_allow_html=True)
+            replies_to_message = notifications_df[
+                notifications_df['parent_notification_id'] == st.session_state.selected_notification_id
+            ].sort_values(by='timestamp', ascending=True)
+
+            if not replies_to_message.empty:
+                st.markdown("<h5>Conversation History:</h5>")
+                for _, reply in replies_to_message.iterrows():
                     st.markdown(f"""
                         <div class="single-reply">
-                            <div class="reply-meta">
-                                From: {reply_row['sender_role']} | To: {reply_row['recipient_role']} | Sent: {reply_row['timestamp']}
-                            </div>
-                            <div>{reply_row['message']}</div>
+                            <div class="reply-meta">From: {reply['sender_role']} on {pd.to_datetime(reply['timestamp']).strftime('%Y-%m-%d %H:%M')}</div>
+                            <div>{reply['message']}</div>
                         </div>
                     """, unsafe_allow_html=True)
-                st.markdown('</div>', unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
 
-            # Reply functionality (only if current user is the recipient of the main message)
-            if message['recipient_role'] == user_role:
-                st.markdown("---")
-                st.markdown("#### Reply to this Notification")
-                with st.form("reply_notification_form", clear_on_submit=True, key=f"reply_form_{selected_msg_id}"):
-                    reply_message_content = st.text_area("Your Reply", height=100)
-                    send_reply_button = st.form_submit_button("⬆️ Send Reply")
-
-                    if send_reply_button:
-                        if reply_message_content:
-                            reply_id = f"REPLY-{int(datetime.now().timestamp())}-{np.random.randint(1000, 9999)}"
-                            new_reply = {
+            # Reply section (only if recipient or sender matches current user)
+            if user_role == selected_message['recipient_role'] or user_role == selected_message['sender_role']:
+                st.markdown("<div class='reply-section'>", unsafe_allow_html=True)
+                with st.form("reply_message_form", clear_on_submit=True):
+                    reply_text = st.text_area("Reply to this message:", height=100, key="reply_text_area")
+                    
+                    if st.form_submit_button("Send Reply"):
+                        if reply_text:
+                            reply_id = "NOTIF" + str(len(notifications_df) + 1).zfill(4)
+                            reply_entry = pd.DataFrame([{
                                 "notification_id": reply_id,
                                 "sender_role": user_role,
-                                "recipient_role": message['sender_role'], # Reply goes back to the original sender
-                                "subject": f"Re: {message['subject']}", # Subject auto-prefixed with Re:
-                                "message": reply_message_content,
-                                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                                "recipient_role": selected_message['sender_role'] if user_role == selected_message['recipient_role'] else selected_message['recipient_role'], # Reply to sender if you are recipient, else to recipient
+                                "subject": f"Re: {selected_message['subject']}",
+                                "message": reply_text,
+                                "timestamp": datetime.now().isoformat(),
                                 "status": "Sent",
-                                "parent_notification_id": selected_msg_id # Link to the original message
-                            }
-                            append_data(NOTIFICATIONS_FILE, pd.DataFrame([new_reply]))
-                            st.session_state.notifications_df = load_data(NOTIFICATIONS_FILE, columns=notification_columns) # Refresh dataframe
+                                "parent_notification_id": selected_message['notification_id']
+                            }])
+                            append_data(NOTIFICATIONS_FILE, reply_entry)
+                            st.session_state.notifications_df = load_data(NOTIFICATIONS_FILE, columns=notification_columns) # Reload
+                            
+                            # Update original message status to 'Replied' if current user is the recipient
+                            if user_role == selected_message['recipient_role']:
+                                idx = notifications_df[notifications_df['notification_id'] == selected_message['notification_id']].index[0]
+                                notifications_df.loc[idx, 'status'] = 'Replied'
+                                update_data(NOTIFICATIONS_FILE, notifications_df)
+                                st.session_state.notifications_df = notifications_df # Update session state
 
-                            # Update status of the original message to "Replied"
-                            original_msg_idx = st.session_state.notifications_df[
-                                st.session_state.notifications_df['notification_id'] == selected_msg_id
-                            ].index
-                            if not original_msg_idx.empty:
-                                st.session_state.notifications_df.loc[original_msg_idx[0], 'status'] = "Replied"
-                                update_data(NOTIFICATIONS_FILE, st.session_state.notifications_df)
-
-                            st.success("✅ Reply sent!")
-                            st.rerun()
+                            st.success("Reply sent!")
+                            st.rerun() # Rerun to show new reply and update status
                         else:
-                            st.error("Please type a reply message.")
-            st.markdown('</div>', unsafe_allow_html=True) # End message-detail-view
+                            st.warning("Reply cannot be empty.")
+                st.markdown("</div>", unsafe_allow_html=True)
+            else:
+                st.info("You can only reply to messages you sent or received.")
         else:
-            st.warning("Notification not found.")
-            if st.button("Back to Inbox", key="back_to_inbox_not_found"):
-                st.session_state.mailbox_view = "inbox"
-                st.session_state.selected_notification_id = None
-                st.rerun()
+            st.warning("No message selected.")
 
-    st.markdown('</div>', unsafe_allow_html=True) # End mailbox-container
+    st.markdown('</div>', unsafe_allow_html=True)
 
-# --- Calendar Module (NEW) ---
+
+# --- Calendar Module ---
 with tabs[7]: # Corresponding to "🗓️ Calendar"
-    st.subheader("Inter-Company Calendar")
-    st.markdown("Coordinate events, meetings, and deadlines across all relevant stakeholders. All synchronized events are visible to all involved parties.")
+    st.subheader("Event Calendar")
+    st.markdown("View upcoming events, meetings, and deadlines.")
 
-    st.markdown("---")
-    st.subheader("Upcoming Events")
+    events_df = st.session_state.events_df
 
-    events_df = st.session_state.events_df.copy()
-
-    # Filter events based on who is attending
-    if not events_df.empty:
-        # Convert 'attendees' column to list of strings for easier checking
-        events_df['attendees'] = events_df['attendees'].apply(lambda x: eval(x) if isinstance(x, str) else x)
-        
-        # Filter for events where current user is an attendee or creator
-        # Also filter for events that are in the future or ongoing
-        filtered_events = events_df[
-            (events_df['attendees'].apply(lambda x: user_role in x if isinstance(x, list) else False)) |
-            (events_df['created_by'] == user_role)
-        ].copy()
-
-        # Convert date columns to datetime objects for proper sorting and comparison
-        filtered_events['start_date'] = pd.to_datetime(filtered_events['start_date'], errors='coerce')
-        filtered_events['end_date'] = pd.to_datetime(filtered_events['end_date'], errors='coerce')
-
-        # Filter for events that are in the future or ongoing
-        today = datetime.now().normalize()
-        filtered_events = filtered_events[(filtered_events['end_date'] >= today) | (filtered_events['start_date'] >= today)]
-
-        filtered_events = filtered_events.sort_values(by="start_date", ascending=True)
-        
-        # Apply search and filter to events_df
-        display_events_df = apply_search_and_filter(filtered_events, "calendar_search", "calendar_advance_search")
-
-        if not display_events_df.empty:
-            # Format dates for display
-            display_events_df['start_date'] = display_events_df['start_date'].dt.strftime("%Y-%m-%d")
-            display_events_df['end_date'] = display_events_df['end_date'].dt.strftime("%Y-%m-%d")
-            st.dataframe(display_events_df[['title', 'description', 'start_date', 'end_date', 'attendees', 'created_by']], use_container_width=True, hide_index=True)
-        else:
-            st.info("No upcoming events or no events matching your search/filter criteria. Add new events below.")
+    if user_role not in ["OEM", "Supplier A", "Supplier B", "Auditor"]:
+        st.warning("🔒 You must be logged in as 'OEM', 'Supplier', or 'Auditor' to view the Calendar.")
     else:
-        st.info("No events scheduled yet. Add new events below.")
+        st.markdown("### Create New Event")
+        with st.form("new_event_form"):
+            new_event_title = st.text_input("Event Title", key="new_event_title")
+            new_event_description = st.text_area("Description", key="new_event_desc")
+            
+            col_event_date1, col_event_date2 = st.columns(2)
+            with col_event_date1:
+                new_event_start_date = st.date_input("Start Date", value=datetime.today(), key="new_event_start_date")
+            with col_event_date2:
+                new_event_end_date = st.date_input("End Date", value=datetime.today() + timedelta(hours=1), key="new_event_end_date") # Default to same day
 
+            # Attendees can be roles or specific supplier names
+            all_attendee_options = user_roles + supplier_df['supplier_name'].tolist()
+            new_event_attendees = st.multiselect("Attendees (Roles or Specific Suppliers)", sorted(list(set(all_attendee_options))), key="new_event_attendees")
 
-    st.markdown("---")
-    with st.container():
-        st.subheader("Schedule New Event")
-        with st.expander("Click to schedule a new event", expanded=False):
-            with st.form("new_event_form", clear_on_submit=True):
-                event_id = f"EVT-{int(datetime.now().timestamp())}-{np.random.randint(1000, 9999)}"
-                event_title = st.text_input("Event Title", placeholder="e.g., Q3 Supplier Review Meeting")
-                event_description = st.text_area("Event Description", placeholder="Detailed agenda or notes for the event.")
+            submit_event = st.form_submit_button("Add Event")
 
-                col_e1, col_e2 = st.columns(2)
-                with col_e1:
-                    event_start_date = st.date_input("Start Date", value=datetime.today(), key="event_start_date")
-                with col_e2:
-                    event_end_date = st.date_input("End Date", value=datetime.today() + timedelta(days=1), key="event_end_date")
-                
-                # Attendees selection (multiselect from all user roles)
-                all_possible_attendees = user_roles # Already defined globally
-                selected_attendees = st.multiselect("Attendees", all_possible_attendees, default=[user_role])
+            if submit_event:
+                if new_event_title and new_event_start_date and new_event_end_date:
+                    event_id = "EVENT" + str(len(events_df) + 1).zfill(4)
+                    new_entry = pd.DataFrame([{
+                        "event_id": event_id,
+                        "title": new_event_title,
+                        "description": new_event_description,
+                        "start_date": new_event_start_date.isoformat(),
+                        "end_date": new_event_end_date.isoformat(),
+                        "attendees": str(new_event_attendees), # Store list as string
+                        "created_by": user_role,
+                        "timestamp": datetime.now().isoformat()
+                    }])
+                    append_data(EVENTS_FILE, new_entry)
+                    st.session_state.events_df = load_data(EVENTS_FILE, columns=event_columns) # Reload
+                    # Ensure 'attendees' column is parsed as list when reloaded
+                    st.session_state.events_df['attendees'] = st.session_state.events_df['attendees'].apply(lambda x: eval(x) if isinstance(x, str) else [])
+                    st.success(f"Event '{new_event_title}' added successfully!")
+                    st.rerun()
+                else:
+                    st.error("Please fill in Event Title, Start Date, and End Date.")
 
-                schedule_button = st.form_submit_button("➕ Schedule Event")
+        st.markdown("### Upcoming Events")
 
-                if schedule_button:
-                    if event_title and event_start_date and event_end_date and selected_attendees:
-                        if event_start_date > event_end_date:
-                            st.error("❗ Start date cannot be after end date.")
-                        else:
-                            new_event = {
-                                "event_id": event_id,
-                                "title": event_title,
-                                "description": event_description,
-                                "start_date": event_start_date.strftime("%Y-%m-%d"),
-                                "end_date": event_end_date.strftime("%Y-%m-%d"),
-                                "attendees": str(selected_attendees), # Store as string representation of list
-                                "created_by": user_role,
-                                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                            }
-                            append_data(EVENTS_FILE, pd.DataFrame([new_event]))
-                            st.session_state.events_df = load_data(EVENTS_FILE, columns=event_columns) # Refresh dataframe
-                            st.success(f"✅ Event '{event_title}' scheduled successfully!")
-                            st.rerun()
-                    else:
-                        st.error("❗ Please fill in all required fields (Title, Start Date, End Date, Attendees).")
+        if not events_df.empty:
+            # Convert date columns to datetime objects
+            events_df['start_date'] = pd.to_datetime(events_df['start_date'], errors='coerce')
+            events_df['end_date'] = pd.to_datetime(events_df['end_date'], errors='coerce')
+            
+            # Filter events for current user
+            # User is an attendee if their role is in the 'attendees' list or their specific supplier name is in it
+            user_specific_events = events_df[
+                events_df['attendees'].apply(lambda x: user_role in x if isinstance(x, list) else False)
+            ].copy() # Use .copy() to avoid SettingWithCopyWarning
 
+            # Filter for upcoming events
+            upcoming_events = user_specific_events[user_specific_events['end_date'] >= datetime.now()].sort_values(by='start_date', ascending=True)
 
-# --- Footer ---
-st.sidebar.markdown("---")
-st.sidebar.markdown(f"© {datetime.now().year} Zenova SRP. All rights reserved.")
-st.sidebar.markdown("Powered by Streamlit")
+            if not upcoming_events.empty:
+                for idx, event in upcoming_events.iterrows():
+                    st.markdown(f"""
+                        <div class="message-card">
+                            <h5>🗓️ {event['title']}</h5>
+                            <p><strong>Description:</strong> {event['description']}</p>
+                            <p><strong>Dates:</strong> {event['start_date'].strftime('%Y-%m-%d')} to {event['end_date'].strftime('%Y-%m-%d')}</p>
+                            <p><strong>Attendees:</strong> {', '.join(event['attendees'])}</p>
+                            <p><strong>Created By:</strong> {event['created_by']}</p>
+                        </div>
+                    """, unsafe_allow_html=True)
+            else:
+                st.info(f"No upcoming events found for {user_role}.")
+        else:
+            st.info("No events added yet.")
