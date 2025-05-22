@@ -4,8 +4,7 @@ import os
 from datetime import datetime, timedelta
 import plotly.express as px
 import numpy as np
-from faker import Faker # NEW: Import Faker for dummy data generation
-import random # NEW: Import random for dummy data generation
+import random # Keep random for in-memory data generation
 
 # --- App Configuration ---
 st.set_page_config(page_title="Zenova SRP", layout="wide", initial_sidebar_state="expanded")
@@ -385,20 +384,16 @@ st.markdown("""
 # --- File Paths & Directory Setup ---
 DATA_DIR = "data"
 NOTIFICATIONS_FILE = os.path.join(DATA_DIR, "notifications.csv")
-# ORIGINAL: FILES_FILE = os.path.join(DATA_DIR, "uploaded_files.csv") # Renaming to prevent conflict
 PROJECTS_FILE = os.path.join(DATA_DIR, "project_tasks.csv")
 ASSETS_FILE = os.path.join(DATA_DIR, "assets.csv")
 AUDITS_FILE = os.path.join(DATA_DIR, "audit_points.csv")
 EVENTS_FILE = os.path.join(DATA_DIR, "events.csv")
-FILE_COMMENTS_FILE = os.path.join(DATA_DIR, "file_comments.csv") # NEW FILE COMMENTS
+FILE_COMMENTS_FILE = os.path.join(DATA_DIR, "file_comments.csv")
 SUPPLIER_RECORDS_DIR = os.path.join(DATA_DIR, "supplier_records")
-SUPPLIER_DUMMY_DATA_FILE = os.path.join(DATA_DIR, "supplier_dummy_data.csv")
+SUPPLIER_DUMMY_DATA_FILE = os.path.join(DATA_DIR, "supplier_dummy_data.csv") # Your main supplier data
 
-# NEW: File paths for Supplier World data
-SUPPLIER_ENRICHED_DATA_FILE = os.path.join(DATA_DIR, "supplier_enriched_data.csv")
-SUPPLIER_ASSETS_FILE = os.path.join(DATA_DIR, "supplier_assets.csv")
-SUPPLIER_PROJECTS_FILE = os.path.join(DATA_DIR, "supplier_projects.csv")
-SUPPLIER_FILES_FILE = os.path.join(DATA_DIR, "supplier_files.csv")
+# Renamed to avoid conflict with supplier_files in Supplier World
+UPLOADED_DOCS_FILE = os.path.join(DATA_DIR, "uploaded_docs.csv") 
 
 os.makedirs(DATA_DIR, exist_ok=True)
 os.makedirs(SUPPLIER_RECORDS_DIR, exist_ok=True)
@@ -494,289 +489,70 @@ def apply_search_and_filter(df, search_query_key, advance_search_key):
             
     return filtered_df
 
-# --- NEW: Data Generation Functions for Supplier World ---
-# Initialize Faker once globally for data generation
-fake = Faker('en_US')
+# --- NEW: In-Memory Data Generation Functions for Supplier World (No Faker) ---
+@st.cache_data
+def generate_mock_supplier_assets(supplier_name):
+    """Generates mock asset data for a specific supplier."""
+    num_assets = random.randint(1, 5)
+    data = []
+    asset_types = ["Machine", "Tool", "Fixture", "Software License"]
+    statuses = ["Operational", "Under Maintenance", "Idle"]
+
+    for i in range(num_assets):
+        asset_id = f"AST-{supplier_name[:3].upper()}-{random.randint(100, 999)}"
+        asset_name = f"{random.choice(['CNC', 'Robotic', 'Assembly', 'Inspection'])} {random.choice(asset_types)} {i+1}"
+        asset_type = random.choice(asset_types)
+        status = random.choice(statuses)
+        last_active = (datetime.now() - timedelta(days=random.randint(1, 180))).strftime('%Y-%m-%d')
+        data.append([asset_id, asset_name, asset_type, status, last_active])
+    
+    return pd.DataFrame(data, columns=["Asset ID", "Asset Name", "Asset Type", "Status", "Last Active Date"])
 
 @st.cache_data
-def generate_enriched_supplier_data(num_suppliers=100):
-    """Generates a DataFrame of enriched supplier data."""
+def generate_mock_supplier_projects(supplier_name):
+    """Generates mock project data for a specific supplier."""
+    num_projects = random.randint(1, 4)
     data = []
-    product_categories = [
-        "Raw Materials", "Electronic Components", "Machined Parts", "Assemblies",
-        "Sub-assemblies", "Fabricated Metals", "Tools & Dies", "Automation Equipment",
-        "Quality Services", "Plastic Components", "Engineering Services", "Prototypes",
-        "Optical Components", "Maintenance Supplies", "Technology Services", "Fasteners"
-    ]
-    cities = [
-        "New York", "Los Angeles", "Chicago", "Houston", "Phoenix", "Philadelphia",
-        "San Antonio", "San Diego", "Dallas", "San Jose", "Austin", "Jacksonville",
-        "Fort Worth", "Columbus", "Charlotte", "San Francisco", "Indianapolis",
-        "Seattle", "Denver", "Washington D.C.", "Boston", "El Paso", "Detroit",
-        "Nashville", "Portland", "Memphis", "Oklahoma City", "Las Vegas", "Louisville",
-        "Baltimore", "Milwaukee", "Albuquerque", "Tucson", "Fresno", "Sacramento",
-        "Mesa", "Kansas City", "Atlanta", "Colorado Springs", "Miami", "Raleigh",
-        "Omaha", "Long Beach", "Virginia Beach", "Oakland", "Minneapolis", "Tulsa",
-        "Arlington", "New Orleans", "Wichita", "Cleveland", "Tampa", "Orlando",
-        "Anaheim", "Honolulu", "Lexington", "St. Louis", "Cincinnati", "Pittsburgh",
-        "Durham", "Greensboro", "Richmond", "Boise", "Spokane", "Lincoln", "Madison"
-    ]
-    agreement_statuses = ["Active", "Active", "Active", "Pending Renewal", "On Hold", "Terminated"]
-    risk_levels = ["Low", "Low", "Low", "Medium", "Medium", "High"]
-    certifications = ["ISO 9001", "AS9100", "ISO 14001", "ISO 27001", "ISO 17025", "N/A"]
-    payment_terms_options = ["Net 30", "Net 60", "Net 90", "Prepayment"]
-    account_managers = ["Alex Johnson", "Sarah Lee", "David Chen", "Emily White", "Mark Green", "Susan Black"]
+    project_types = ["New Product Launch", "Process Optimization", "Quality Improvement", "Cost Reduction"]
+    statuses = ["In Progress", "Completed", "Planned", "On Hold"]
 
-    for i in range(1, num_suppliers + 1):
-        supplier_id = f"SUP-{i:03d}"
-        annual_spend = random.randint(100000, 1500000)
-        risk_level = random.choice(risk_levels)
-
-        agreement_status = random.choice(agreement_statuses)
-        if agreement_status == 'Terminated':
-            last_audit_score = random.randint(50, 70)
-            on_time_delivery_rate = round(random.uniform(70.0, 90.0), 1)
-            quality_reject_rate = round(random.uniform(1.0, 3.0), 1)
-            risk_level = "High"
-        elif agreement_status == 'On Hold':
-            last_audit_score = random.randint(60, 75)
-            on_time_delivery_rate = round(random.uniform(80.0, 92.0), 1)
-            quality_reject_rate = round(random.uniform(0.8, 2.0), 1)
-            if risk_level == "Low": risk_level = "Medium"
-        else: # Active or Pending Renewal
-            last_audit_score = random.randint(75, 95)
-            on_time_delivery_rate = round(random.uniform(90.0, 99.5), 1)
-            quality_reject_rate = round(random.uniform(0.0, 1.0), 2)
-            if last_audit_score < 80: risk_level = "Medium"
-
-        if on_time_delivery_rate < 90 or quality_reject_rate > 1.0:
-            if risk_level == "Low": risk_level = "Medium"
-        if on_time_delivery_rate < 85 or quality_reject_rate > 1.5:
-            risk_level = "High"
-
-        supplier_tier = "Tier 3 - Approved"
-        if annual_spend >= 700000 and last_audit_score >= 85 and risk_level == "Low":
-            supplier_tier = "Tier 1 - Strategic"
-        elif annual_spend >= 400000 and last_audit_score >= 80 and risk_level in ["Low", "Medium"]:
-            supplier_tier = "Tier 2 - Preferred"
-        elif agreement_status in ["Terminated", "On Hold"] or risk_level == "High" or last_audit_score < 75:
-             supplier_tier = "Tier 4 - Watchlist"
-
-
-        contact_person = fake.name()
-        supplier_name = fake.company()
-        email = f"{contact_person.replace(' ', '.').lower()}@{supplier_name.replace(' ', '').lower()}.com"
-        phone = fake.phone_number()
-        notes = fake.sentence()
-        primary_product_category = random.choice(product_categories)
-        certification = random.choice(certifications) if random.random() > 0.1 else "N/A"
-        if agreement_status == 'Terminated' or agreement_status == 'On Hold':
-            certification = "N/A"
-
-        last_performance_review_date = fake.date_between(start_date='-1y', end_date='today').strftime('%Y-%m-%d')
-        supplier_city = random.choice(cities)
-        supplier_country = "USA"
-        payment_terms = random.choice(payment_terms_options)
-        contract_start_date = fake.date_between(start_date='-4y', end_date='-1y').strftime('%Y-%m-%d')
-        csd_dt = datetime.strptime(contract_start_date, '%Y-%m-%d')
-        contract_end_date = (csd_dt + timedelta(days=random.randint(365, 1095))).strftime('%Y-%m-%d')
-        if agreement_status == 'Pending Renewal':
-            contract_end_date = fake.date_between(start_date='today', end_date='+6m').strftime('%Y-%m-%d')
-        elif agreement_status == 'Terminated':
-            contract_end_date = fake.date_between(start_date='-2y', end_date='-6m').strftime('%Y-%m-%d')
-
-        esg_score = random.randint(50, 95)
-        account_manager = random.choice(account_managers)
-        onboarding_date = (csd_dt - timedelta(days=random.randint(30, 180))).strftime('%Y-%m-%d')
-        emissions_target_met = random.choice([True, False]) # For ESG compliance
-
-        data.append([
-            supplier_id, supplier_name, contact_person, email, phone, agreement_status,
-            last_audit_score, notes, primary_product_category, on_time_delivery_rate,
-            quality_reject_rate, risk_level, certification, annual_spend,
-            last_performance_review_date, supplier_city, supplier_country, payment_terms,
-            contract_start_date, contract_end_date, supplier_tier, esg_score,
-            account_manager, onboarding_date, emissions_target_met
-        ])
-
-    df = pd.DataFrame(data, columns=[
-        'supplier_id', 'supplier_name', 'contact_person', 'email', 'phone', 'agreement_status',
-        'last_audit_score', 'notes', 'primary_product_category', 'on_time_delivery_rate',
-        'quality_reject_rate', 'risk_level', 'certification', 'annual_spend_usd',
-        'last_performance_review_date', 'supplier_city', 'supplier_country', 'payment_terms',
-        'contract_start_date', 'contract_end_date', 'supplier_tier', 'ESG_score',
-        'account_manager', 'onboarding_date', 'emissions_target_met'
-    ])
-
-    df['phone'] = df['phone'].apply(lambda x: ''.join(filter(str.isdigit, x)))
-    df['phone'] = df['phone'].apply(lambda x: f"+1 ({x[1:4]}) {x[4:7]}-{x[7:]}" if len(x) >= 10 else x)
-
-    return df
-
-@st.cache_data
-def generate_supplier_assets(supplier_ids):
-    """Generates a DataFrame of supplier assets."""
-    data = []
-    asset_types = ["Tooling", "Equipment", "Software License", "Vehicle", "Fixture", "Mold"]
-    statuses = ["In Use", "In Storage", "Under Maintenance", "Retired", "Loaned"]
-    locations = ["Supplier Plant A", "Supplier Plant B", "Supplier Plant C", "Client Site X"]
-
-    asset_id_counter = 1
-    for s_id in supplier_ids:
-        num_assets = random.choices([0, 1, 2, 3], weights=[0.4, 0.3, 0.2, 0.1], k=1)[0]
-        for _ in range(num_assets):
-            asset_id = f"SUP_AST-{asset_id_counter:04d}" # Differentiate from general assets
-            asset_name = fake.catch_phrase() + " " + random.choice(["Machine", "Tool", "System", "License"])
-            asset_type = random.choice(asset_types)
-            description = fake.sentence()
-            acquisition_date = fake.date_between(start_date='-5y', end_date='-6m').strftime('%Y-%m-%d')
-            status = random.choice(statuses)
-            location = random.choice(locations)
-            notes = fake.optional(fake.sentence, 0.7)
-
-            data.append([
-                asset_id, s_id, asset_name, asset_type, description,
-                acquisition_date, status, location, notes
-            ])
-            asset_id_counter += 1
-    return pd.DataFrame(data, columns=[
-        'asset_id', 'supplier_id', 'asset_name', 'asset_type', 'description',
-        'acquisition_date', 'status', 'location', 'notes'
-    ])
-
-@st.cache_data
-def generate_supplier_projects(supplier_ids):
-    """Generates a DataFrame of supplier projects."""
-    data = []
-    project_types = ["New Product Development", "Process Improvement", "Cost Reduction",
-                     "Quality Enhancement", "Technology Integration", "Supply Chain Optimization",
-                     "ESG Compliance Initiative", "Waste Reduction Program"] # Added ESG types
-    statuses = ["Planned", "In Progress", "Completed", "On Hold", "Cancelled"]
-    project_managers = ["Emily White", "Mark Green", "Susan Black", "Robert Blue", "Olivia Grey"]
-
-    project_id_counter = 1
-    for s_id in supplier_ids:
-        num_projects = random.choices([0, 1, 2], weights=[0.3, 0.5, 0.2], k=1)[0]
-        for _ in range(num_projects):
-            project_id = f"SUP_PRJ-{project_id_counter:04d}" # Differentiate from general projects
-            project_name = fake.bs().title() + " Project"
-            project_type = random.choice(project_types)
-            start_date = fake.date_between(start_date='-1y', end_date='-1m').strftime('%Y-%m-%d')
-            end_date = (datetime.strptime(start_date, '%Y-%m-%d') + timedelta(days=random.randint(30, 365))).strftime('%Y-%m-%d')
-            status = random.choice(statuses)
-            budget_usd = round(random.uniform(20000, 1000000), -3)
-
-            if status == 'Completed':
-                end_date = fake.date_between(start_date='-1y', end_date='-1m').strftime('%Y-%m-%d')
-                start_date = (datetime.strptime(end_date, '%Y-%m-%d') - timedelta(days=random.randint(30, 300))).strftime('%Y-%m-%d')
-            elif status == 'Planned':
-                start_date = fake.date_between(start_date='+1m', end_date='+6m').strftime('%Y-%m-%d')
-                end_date = (datetime.strptime(start_date, '%Y-%m-%d') + timedelta(days=random.randint(60, 365))).strftime('%Y-%m-%d')
-            
-            # Check if it's an ESG related project
-            is_esg_project = True if "ESG" in project_type or "Reduction" in project_type else False
-
-            description = fake.paragraph(nb_sentences=2)
-            project_manager = random.choice(project_managers)
-
-            data.append([
-                project_id, s_id, project_name, project_type, start_date, end_date,
-                status, budget_usd, description, project_manager, is_esg_project # Added is_esg_project
-            ])
-            project_id_counter += 1
-    return pd.DataFrame(data, columns=[
-        'project_id', 'supplier_id', 'project_name', 'project_type', 'start_date',
-        'end_date', 'status', 'budget_usd', 'description', 'project_manager', 'is_esg_project'
-    ])
-
-@st.cache_data
-def generate_supplier_files(supplier_ids):
-    """Generates a DataFrame of supplier files."""
-    data = []
-    file_types = ["PDF", "DOCX", "XLSX", "CAD", "JPG", "PNG", "Legal Document",
-                  "Audit Report", "Performance Report", "Contract", "Specification"]
-    uploaded_by_options = ["Admin", "John Doe", "Legal Dept", "Engineering Team", "Procurement"]
-
-    file_id_counter = 1
-    for s_id in supplier_ids:
-        num_files = random.choices([0, 1, 2, 3, 4], weights=[0.2, 0.3, 0.2, 0.2, 0.1], k=1)[0]
-        for _ in range(num_files):
-            file_id = f"SUP_FIL-{file_id_counter:04d}" # Differentiate from general files
-            file_type = random.choice(file_types)
-            file_name = fake.word().title() + " " + file_type + " " + fake.numerify(text='###')
-
-            if file_type == "Audit Report": file_name = f"{fake.company()} Audit Report {fake.year()}"
-            elif file_type == "Performance Report": file_name = f"{fake.company()} Q{random.randint(1,4)} {fake.year()} Perf."
-            elif file_type == "Contract": file_name = f"{fake.company()} Master Agreement {fake.year()}"
-            elif file_type == "Specification": file_name = f"Component X Spec v{random.randint(1,5)}.{random.randint(0,9)}"
-            elif file_type == "Legal Document": file_name = f"{fake.company()} NDA {fake.year()}"
-
-            upload_date = fake.date_between(start_date='-2y', end_date='today').strftime('%Y-%m-%d')
-            uploaded_by = random.choice(uploaded_by_options)
-            description = fake.sentence(nb_words=6)
-            document_link = f"https://yourcompany.com/documents/{s_id}/{file_name.replace(' ', '_').lower()}"
-
-            data.append([
-                file_id, s_id, file_name, file_type, upload_date,
-                uploaded_by, description, document_link
-            ])
-            file_id_counter += 1
-    return pd.DataFrame(data, columns=[
-        'file_id', 'supplier_id', 'file_name', 'file_type', 'upload_date',
-        'uploaded_by', 'description', 'document_link'
-    ])
-
-# --- NEW: Function to ensure Supplier World CSVs exist and load them ---
-@st.cache_resource
-def load_supplier_world_data():
-    """
-    Checks if Supplier World CSVs exist, generates them if not, then loads all dataframes.
-    Uses st.cache_resource to avoid re-running on every page interaction.
-    """
-    csv_files = {
-        'suppliers': SUPPLIER_ENRICHED_DATA_FILE,
-        'assets': SUPPLIER_ASSETS_FILE,
-        'projects': SUPPLIER_PROJECTS_FILE,
-        'files': SUPPLIER_FILES_FILE
-    }
-
-    # Check if all CSVs exist. If not, generate them.
-    all_exist = True
-    for key, filename in csv_files.items():
-        if not os.path.exists(filename):
-            all_exist = False
-            break
-
-    if not all_exist:
-        st.info("Generating dummy data CSVs for the first time for Supplier World... This may take a moment.")
-        df_suppliers_gen = generate_enriched_supplier_data(num_suppliers=50) # Reduced count for faster generation
-        df_suppliers_gen.to_csv(csv_files['suppliers'], index=False)
-
-        all_supplier_ids = df_suppliers_gen['supplier_id'].tolist()
-
-        df_assets_gen = generate_supplier_assets(all_supplier_ids)
-        df_assets_gen.to_csv(csv_files['assets'], index=False)
-
-        # Updated columns for projects, ensure new col is present
-        project_cols = ["project_id", "supplier_id", "project_name", "project_type", "start_date",
-                        "end_date", "status", "budget_usd", "description", "project_manager", "is_esg_project"]
-        df_projects_gen = generate_supplier_projects(all_supplier_ids)
-        df_projects_gen.to_csv(csv_files['projects'], index=False)
-
-        df_files_gen = generate_supplier_files(all_supplier_ids)
-        df_files_gen.to_csv(csv_files['files'], index=False)
-        st.success("Dummy data for Supplier World generated and saved to CSV files!")
-        # Reload the generated data
-        return pd.read_csv(csv_files['suppliers']), pd.read_csv(csv_files['assets']), \
-               pd.read_csv(csv_files['projects']), pd.read_csv(csv_files['files'])
-    else:
-        # Load existing data
-        # Ensure project columns include 'is_esg_project' when loading
-        df_projects_loaded = load_data(csv_files['projects'], columns=["project_id", "supplier_id", "project_name", "project_type", "start_date",
-                        "end_date", "status", "budget_usd", "description", "project_manager", "is_esg_project"])
+    for i in range(num_projects):
+        project_id = f"PRJ-{supplier_name[:3].upper()}-{random.randint(10, 99)}"
+        project_name = f"{random.choice(project_types)} - Phase {i+1}"
+        status = random.choice(statuses)
+        start_date = (datetime.now() - timedelta(days=random.randint(30, 365))).strftime('%Y-%m-%d')
+        end_date = (datetime.now() + timedelta(days=random.randint(30, 180))).strftime('%Y-%m-%d')
+        if status == "Completed":
+            end_date = (datetime.now() - timedelta(days=random.randint(1, 60))).strftime('%Y-%m-%d')
+            start_date = (datetime.strptime(end_date, '%Y-%m-%d') - timedelta(days=random.randint(30, 180))).strftime('%Y-%m-%d')
         
-        return pd.read_csv(csv_files['suppliers']), pd.read_csv(csv_files['assets']), \
-               df_projects_loaded, pd.read_csv(csv_files['files'])
+        data.append([project_id, project_name, status, start_date, end_date])
+    
+    return pd.DataFrame(data, columns=["Project ID", "Project Name", "Status", "Start Date", "End Date"])
+
+@st.cache_data
+def generate_mock_supplier_cost_data(supplier_name, annual_spend):
+    """Generates mock cost data for a specific supplier."""
+    data = []
+    
+    # Simulate some cost categories
+    categories = ["Raw Materials", "Labor", "Logistics", "Overhead", "Quality Rework"]
+    
+    # Distribute annual spend across categories
+    spend_distribution = np.random.dirichlet(np.ones(len(categories)), size=1)[0]
+    category_spends = [round(s * annual_spend, 2) for s in spend_distribution]
+
+    for i, category in enumerate(categories):
+        data.append([category, category_spends[i]])
+    
+    df_cost_breakdown = pd.DataFrame(data, columns=["Cost Category", "Amount (USD)"])
+    
+    # Generate some key metrics
+    total_spend = df_cost_breakdown["Amount (USD)"].sum()
+    cost_savings_ytd = round(random.uniform(0.01, 0.05) * annual_spend, 2) # 1-5% savings
+    budget_adherence_rate = round(random.uniform(90.0, 105.0), 1) # 90-105% adherence
+    
+    return df_cost_breakdown, total_spend, cost_savings_ytd, budget_adherence_rate
 
 
 # --- Initialize CSV Files (Your existing setup) ---
@@ -784,9 +560,8 @@ notification_columns = [
     "notification_id", "sender_role", "recipient_role", "subject", "message",
     "timestamp", "status", "parent_notification_id" # status: Sent, Read, Replied
 ]
-initialize_csv(NOTIFICATIONS_FILE, notification_columns) # NEW
-# Renamed from FILES_FILE to avoid conflict with supplier_files.csv
-initialize_csv(os.path.join(DATA_DIR, "uploaded_docs.csv"), ["filename", "type", "size", "uploader", "timestamp", "path"]) 
+initialize_csv(NOTIFICATIONS_FILE, notification_columns)
+initialize_csv(UPLOADED_DOCS_FILE, ["filename", "type", "size", "uploader", "timestamp", "path"]) 
 
 # --- MODIFIED: Added 'is_esg_project' for Sustainability Tracking ---
 project_columns = ["task_id", "task_name", "status", "assigned_to", "due_date", "description", "input_pending", "is_esg_project"]
@@ -806,10 +581,9 @@ initialize_csv(EVENTS_FILE, event_columns)
 file_comment_columns = [
     "comment_id", "file_name", "parent_comment_id", "author", "timestamp", "comment_text", "mentions" # mentions: list of roles
 ]
-initialize_csv(FILE_COMMENTS_FILE, file_comment_columns) # NEW FILE COMMENTS
+initialize_csv(FILE_COMMENTS_FILE, file_comment_columns)
 
 # --- MODIFIED: Added ESG-related columns for Sustainability Tracking & Gamification ---
-# This file is for the 'Supplier Records' tab and will be separate from the 'Supplier World' data
 supplier_columns = [
     "supplier_id", "supplier_name", "contact_person", "email", "phone",
     "agreement_status", "last_audit_score", "notes",
@@ -837,7 +611,7 @@ st.header("Zenova SRP Portal") # Main application title at the top
 
 tab_titles = [
     "📊 OEM Dashboard",
-    "👥 Supplier Records", # Your existing supplier records tab
+    "👥 Supplier Records",
     "🌎 Supplier World", # NEW: Supplier World tab
     "🛠️ Asset Management",
     "📅 Project Management",
@@ -866,7 +640,7 @@ if "events_df" not in st.session_state:
 
 # Renamed to avoid conflict with supplier files for "Supplier World"
 if "uploaded_docs_df" not in st.session_state:
-    st.session_state.uploaded_docs_df = load_data(os.path.join(DATA_DIR, "uploaded_docs.csv"), 
+    st.session_state.uploaded_docs_df = load_data(UPLOADED_DOCS_FILE, 
                                                    columns=["filename", "type", "size", "uploader", "timestamp", "path"])
 
 
@@ -1118,15 +892,15 @@ with tabs[1]: # Corresponding to "👥 Supplier Records"
 with tabs[2]: # Corresponding to "🌎 Supplier World"
     st.subheader("Supplier World: Deep Dive into Supplier Data")
 
-    # Load all dataframes for Supplier World (cached)
-    df_suppliers_sw, df_assets_sw, df_projects_sw, df_files_sw = load_supplier_world_data()
+    # Load the main supplier data (your existing supplier_dummy_data.csv)
+    df_suppliers_main = load_data(SUPPLIER_DUMMY_DATA_FILE, columns=supplier_columns)
 
     if user_role not in ["OEM", "Auditor"]:
         st.warning("🔒 You must be logged in as 'OEM' or 'Auditor' to view Supplier World.")
     else:
         # --- Sidebar for Supplier Selection (for Supplier World) ---
         # Get unique supplier names and IDs from the loaded data for this module
-        supplier_names_ids_sw = df_suppliers_sw[['supplier_name', 'supplier_id']].apply(lambda x: f"{x['supplier_name']} ({x['supplier_id']})", axis=1).tolist()
+        supplier_names_ids_sw = df_suppliers_main[['supplier_name', 'supplier_id']].apply(lambda x: f"{x['supplier_name']} ({x['supplier_id']})", axis=1).tolist()
         
         # Add an empty option to the selection
         display_options_sw = ["-- Select a Supplier --"] + supplier_names_ids_sw
@@ -1143,10 +917,14 @@ with tabs[2]: # Corresponding to "🌎 Supplier World"
             st.markdown("---")
 
             # Filter data for the selected supplier
-            current_supplier_info_sw = df_suppliers_sw[df_suppliers_sw['supplier_id'] == selected_supplier_id_sw].iloc[0]
-            current_supplier_assets_sw = df_assets_sw[df_assets_sw['supplier_id'] == selected_supplier_id_sw]
-            current_supplier_projects_sw = df_projects_sw[df_projects_sw['supplier_id'] == selected_supplier_id_sw]
-            current_supplier_files_sw = df_files_sw[df_files_sw['supplier_id'] == selected_supplier_id_sw]
+            current_supplier_info_sw = df_suppliers_main[df_suppliers_main['supplier_id'] == selected_supplier_id_sw].iloc[0]
+            
+            # --- Generate in-memory mock data for the selected supplier ---
+            mock_assets_for_supplier = generate_mock_supplier_assets(current_supplier_info_sw['supplier_name'])
+            mock_projects_for_supplier = generate_mock_supplier_projects(current_supplier_info_sw['supplier_name'])
+            mock_cost_breakdown, total_spend_mock, cost_savings_mock, budget_adherence_mock = \
+                generate_mock_supplier_cost_data(current_supplier_info_sw['supplier_name'], current_supplier_info_sw['annual_spend_usd'])
+
 
             # --- Display Supplier Overview ---
             st.subheader("📊 Supplier Overview")
@@ -1162,7 +940,7 @@ with tabs[2]: # Corresponding to "🌎 Supplier World"
                 st.metric("Quality Reject Rate", f"{current_supplier_info_sw['quality_reject_rate']}%")
             with col4:
                 st.metric("Risk Level", current_supplier_info_sw['risk_level'])
-                st.metric("ESG Score", current_supplier_info_sw['ESG_score'])
+                st.metric("ESG Score", current_supplier_info_sw['esg_compliance_score']) # Using actual ESG score from dummy data
 
             st.write(f"**Contact Person:** {current_supplier_info_sw['contact_person']}")
             st.write(f"**Email:** {current_supplier_info_sw['email']}")
@@ -1176,35 +954,60 @@ with tabs[2]: # Corresponding to "🌎 Supplier World"
             st.info(f"**Notes:** {current_supplier_info_sw['notes']}")
 
 
-            # --- Tabs for Asset, Project, File Management (within Supplier World) ---
-            tab1_sw, tab2_sw, tab3_sw = st.tabs(["🗄️ Assets", "🗓️ Projects", "📁 Files"])
+            # --- Tabs for Asset, Project, Cost Management (within Supplier World) ---
+            tab1_sw, tab2_sw, tab3_sw = st.tabs(["🗄️ Assets", "🗓️ Projects", "💰 Cost Management"])
 
             with tab1_sw:
-                st.subheader(f"Assets for {current_supplier_info_sw['supplier_name']}")
+                st.subheader(f"Assets associated with {current_supplier_info_sw['supplier_name']}")
                 # Apply search and filter within this tab for assets
-                filtered_assets_sw = apply_search_and_filter(current_supplier_assets_sw, "supplier_world_assets_search", "supplier_world_assets_adv_search")
+                filtered_assets_sw = apply_search_and_filter(mock_assets_for_supplier, "supplier_world_assets_search", "supplier_world_assets_adv_search")
                 if not filtered_assets_sw.empty:
                     st.dataframe(filtered_assets_sw, use_container_width=True, hide_index=True)
                 else:
                     st.info("No assets found for this supplier.")
 
             with tab2_sw:
-                st.subheader(f"Projects for {current_supplier_info_sw['supplier_name']}")
+                st.subheader(f"Projects involving {current_supplier_info_sw['supplier_name']}")
                 # Apply search and filter within this tab for projects
-                filtered_projects_sw = apply_search_and_filter(current_supplier_projects_sw, "supplier_world_projects_search", "supplier_world_projects_adv_search")
+                filtered_projects_sw = apply_search_and_filter(mock_projects_for_supplier, "supplier_world_projects_search", "supplier_world_projects_adv_search")
                 if not filtered_projects_sw.empty:
                     st.dataframe(filtered_projects_sw, use_container_width=True, hide_index=True)
                 else:
                     st.info("No projects found for this supplier.")
 
             with tab3_sw:
-                st.subheader(f"Files for {current_supplier_info_sw['supplier_name']}")
-                # Apply search and filter within this tab for files
-                filtered_files_sw = apply_search_and_filter(current_supplier_files_sw, "supplier_world_files_search", "supplier_world_files_adv_search")
-                if not filtered_files_sw.empty:
-                    st.dataframe(filtered_files_sw, use_container_width=True, hide_index=True)
+                st.subheader(f"Cost Management for {current_supplier_info_sw['supplier_name']}")
+                st.markdown("Detailed financial insights and cost breakdown.")
+
+                col_cost1, col_cost2 = st.columns(2)
+                with col_cost1:
+                    st.metric("Total Spend YTD", f"${total_spend_mock:,.2f}")
+                    st.metric("Cost Savings Achieved", f"${cost_savings_mock:,.2f}", delta="Savings!")
+                with col_cost2:
+                    st.metric("Budget Adherence Rate", f"{budget_adherence_mock:.1f}%", delta="On Track" if budget_adherence_mock >= 98 else "Needs Review", delta_color="normal" if budget_adherence_mock >= 98 else "inverse")
+                    st.metric("Average Project Cost", f"${mock_projects_for_supplier['Budget (USD)'].mean():,.2f}" if not mock_projects_for_supplier.empty else "$0.00")
+                
+                st.markdown("---")
+                st.subheader("Spend Breakdown by Category")
+                if not mock_cost_breakdown.empty:
+                    fig_cost = px.pie(mock_cost_breakdown, values='Amount (USD)', names='Cost Category',
+                                         title='Spend Distribution by Category', hole=0.3,
+                                         template='plotly_dark')
+                    fig_cost.update_traces(textposition='inside', textinfo='percent+label')
+                    fig_cost.update_layout(showlegend=True, margin=dict(l=20, r=20, t=30, b=20), height=350)
+                    st.plotly_chart(fig_cost, use_container_width=True)
                 else:
-                    st.info("No files found for this supplier.")
+                    st.info("No cost breakdown data available for this supplier.")
+
+                st.markdown("---")
+                st.subheader("Cost Management Insights")
+                if budget_adherence_mock < 95:
+                    st.warning(f"**Action Required:** {current_supplier_info_sw['supplier_name']}'s budget adherence is {budget_adherence_mock:.1f}%. Review recent expenditures.")
+                elif cost_savings_mock < 0.02 * annual_spend: # If savings are less than 2% of annual spend
+                    st.info(f"**Opportunity:** Explore additional cost-saving initiatives with {current_supplier_info_sw['supplier_name']}.")
+                else:
+                    st.success(f"**Positive:** {current_supplier_info_sw['supplier_name']} is managing costs effectively with {cost_savings_mock:,.2f} in savings.")
+
         else:
             st.info("Please select a supplier from the sidebar to view their 'Supplier World' details.")
 
@@ -1402,8 +1205,8 @@ with tabs[6]: # Corresponding to "📁 File Management"
             "timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             "path": file_path
         }])
-        append_data(os.path.join(DATA_DIR, "uploaded_docs.csv"), new_file_entry) # Save to the correct file
-        st.session_state.uploaded_docs_df = load_data(os.path.join(DATA_DIR, "uploaded_docs.csv"), 
+        append_data(UPLOADED_DOCS_FILE, new_file_entry) # Save to the correct file
+        st.session_state.uploaded_docs_df = load_data(UPLOADED_DOCS_FILE, 
                                                        columns=["filename", "type", "size", "uploader", "timestamp", "path"]) # Refresh session state
         st.success(f"File '{uploaded_file.name}' uploaded successfully!")
         st.experimental_rerun()
